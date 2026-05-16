@@ -1,19 +1,27 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Pencil, Trash2 } from 'lucide-react'
+import { ArrowLeft, Pencil, Trash2, Sparkles } from 'lucide-react'
 import { useData } from '../data/DataContext'
+import { suggestForRecipient } from '../lib/claude'
 import Tag from '../components/ui/Tag'
 import Button from '../components/ui/Button'
 import SlidePanel from '../components/ui/SlidePanel'
+import SuggestionsPanel from '../components/ui/SuggestionsPanel'
 import RecipientForm from '../components/recipients/RecipientForm'
 
 export default function RecipientDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { getRecipientById, getGiftsForRecipient, getProductsForGift, getOccasionById, updateRecipient, deleteRecipient } = useData()
+  const { getRecipientById, getGiftsForRecipient, getProductsForGift, getOccasionById, updateRecipient, deleteRecipient, products, addProduct } = useData()
 
   const recipient = getRecipientById(id)
   const [editOpen, setEditOpen] = useState(false)
+
+  // Suggestions state
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  const [suggestLoading, setSuggestLoading] = useState(false)
+  const [suggestError, setSuggestError] = useState(null)
+  const [suggestions, setSuggestions] = useState([])
 
   if (!recipient) return <p className="text-muted">Recipient not found.</p>
 
@@ -24,6 +32,40 @@ export default function RecipientDetailPage() {
   const handleSave = (formData) => {
     updateRecipient(id, formData)
     setEditOpen(false)
+  }
+
+  const fetchSuggestions = async () => {
+    setSuggestOpen(true)
+    setSuggestLoading(true)
+    setSuggestError(null)
+    setSuggestions([])
+    try {
+      const results = await suggestForRecipient({
+        recipient,
+        libraryProducts: products,
+        pastGifts: getGiftsForRecipient(id),
+      })
+      setSuggestions(results)
+    } catch (err) {
+      setSuggestError(err.message)
+    } finally {
+      setSuggestLoading(false)
+    }
+  }
+
+  const handleSuggestionSave = (suggestion) => {
+    const existing = products.find(
+      (p) => p.name.toLowerCase() === suggestion.name.toLowerCase()
+    )
+    if (!existing) {
+      addProduct({
+        name: suggestion.name,
+        description: suggestion.description,
+        price: null,
+        link: null,
+        photo_url: null,
+      })
+    }
   }
 
   const handleDelete = () => {
@@ -47,6 +89,10 @@ export default function RecipientDetailPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="secondary" onClick={fetchSuggestions}>
+            <Sparkles size={14} />
+            Get ideas
+          </Button>
           <Button variant="secondary" onClick={() => setEditOpen(true)}>
             <Pencil size={14} />
             Edit
@@ -120,6 +166,21 @@ export default function RecipientDetailPage() {
       <SlidePanel isOpen={editOpen} onClose={() => setEditOpen(false)} title={`Edit ${recipient.name}`}>
         <RecipientForm recipient={recipient} onSave={handleSave} onCancel={() => setEditOpen(false)} />
       </SlidePanel>
+
+      <SuggestionsPanel
+        isOpen={suggestOpen}
+        onClose={() => setSuggestOpen(false)}
+        title={`Gift ideas for ${recipient.name}`}
+        loading={suggestLoading}
+        error={suggestError}
+        onRetry={fetchSuggestions}
+        suggestions={suggestions}
+        primaryAction={{
+          label: (s) => s.in_library ? 'Already in library' : 'Save to library',
+          doneLabel: 'Saved to library',
+          handler: handleSuggestionSave,
+        }}
+      />
     </div>
   )
 }

@@ -3,9 +3,11 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Pencil, Trash2, Plus, Sparkles } from 'lucide-react'
 import { useData } from '../data/DataContext'
 import { formatDate, daysUntil } from '../data/helpers'
+import { suggestForGift } from '../lib/claude'
 import Tag from '../components/ui/Tag'
 import Button from '../components/ui/Button'
 import SlidePanel from '../components/ui/SlidePanel'
+import SuggestionsPanel from '../components/ui/SuggestionsPanel'
 import OccasionForm from '../components/occasions/OccasionForm'
 import GiftForm from '../components/gifts/GiftForm'
 
@@ -42,14 +44,24 @@ export default function OccasionDetailPage() {
     getGiftsForOccasion, getRecipientsForGift, getProductsForGift,
     getDefaultRecipientsForHoliday,
     recipients, products,
+    getGiftsForRecipient,
     updateOccasion, deleteOccasion,
     addGift, updateGift, updateGiftRelations, deleteGift,
+    addProduct,
   } = useData()
 
   const occasion = getOccasionById(id)
   const [editOccasionOpen, setEditOccasionOpen] = useState(false)
   const [addGiftOpen, setAddGiftOpen] = useState(false)
   const [editingGiftId, setEditingGiftId] = useState(null)
+
+  // Suggestions state
+  const [suggestOpen, setSuggestOpen] = useState(false)
+  const [suggestTitle, setSuggestTitle] = useState('')
+  const [suggestLoading, setSuggestLoading] = useState(false)
+  const [suggestError, setSuggestError] = useState(null)
+  const [suggestions, setSuggestions] = useState([])
+  const [suggestGiftId, setSuggestGiftId] = useState(null)
 
   if (!occasion) return <p className="text-muted">Occasion not found.</p>
 
@@ -116,6 +128,71 @@ export default function OccasionDetailPage() {
         []
       )
     })
+  }
+
+  // ── Suggestions ──────────────────────────────────────────────────────
+
+  const fetchSuggestions = async (giftId) => {
+    const gift = gifts.find((g) => g.id === giftId)
+    const giftRecipientList = getRecipientsForGift(giftId)
+    const recipient = giftRecipientList[0]
+    if (!recipient) return
+
+    const pastGifts = getGiftsForRecipient(recipient.id).filter(
+      (g) => g.occasion_id !== id
+    )
+
+    setSuggestGiftId(giftId)
+    setSuggestTitle(`Ideas for ${recipient.name}`)
+    setSuggestOpen(true)
+    setSuggestLoading(true)
+    setSuggestError(null)
+    setSuggestions([])
+
+    try {
+      const results = await suggestForGift({
+        recipient,
+        occasion,
+        libraryProducts: products,
+        pastGifts: gifts.filter(
+          (g) => g.occasion_id !== id && getRecipientsForGift(g.id).some((r) => r.id === recipient.id)
+        ),
+      })
+      setSuggestions(results)
+    } catch (err) {
+      setSuggestError(err.message)
+    } finally {
+      setSuggestLoading(false)
+    }
+  }
+
+  const handleSuggestionAction = (suggestion) => {
+    // Find or create the product in the library
+    const existing = products.find(
+      (p) => p.name.toLowerCase() === suggestion.name.toLowerCase()
+    )
+    let productId
+    if (existing) {
+      productId = existing.id
+    } else {
+      const newProduct = addProduct({
+        name: suggestion.name,
+        description: suggestion.description,
+        price: null,
+        link: null,
+        photo_url: null,
+      })
+      productId = newProduct.id
+    }
+    // Add to the current gift
+    const currentProductIds = getProductsForGift(suggestGiftId).map((p) => p.id)
+    if (!currentProductIds.includes(productId)) {
+      updateGiftRelations(
+        suggestGiftId,
+        getRecipientsForGift(suggestGiftId).map((r) => r.id),
+        [...currentProductIds, productId]
+      )
+    }
   }
 
   // ── Editing gift context ─────────────────────────────────────────────
@@ -251,6 +328,16 @@ export default function OccasionDetailPage() {
                     </button>
                   )}
                   <div className="flex items-center gap-2 ml-auto">
+                    {getRecipientsForGift(gift.id).length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => fetchSuggestions(gift.id)}
+                        className="text-sm text-muted hover:text-foreground transition-colors inline-flex items-center gap-1"
+                      >
+                        <Sparkles size={12} />
+                        Ideas
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => setEditingGiftId(gift.id)}
@@ -324,6 +411,22 @@ export default function OccasionDetailPage() {
           />
         )}
       </SlidePanel>
+
+      {/* Suggestions panel */}
+      <SuggestionsPanel
+        isOpen={suggestOpen}
+        onClose={() => setSuggestOpen(false)}
+        title={suggestTitle}
+        loading={suggestLoading}
+        error={suggestError}
+        onRetry={() => suggestGiftId && fetchSuggestions(suggestGiftId)}
+        suggestions={suggestions}
+        primaryAction={{
+          label: (s) => s.in_library ? 'Add to gift' : 'Save to library & add to gift',
+          doneLabel: 'Added to gift',
+          handler: handleSuggestionAction,
+        }}
+      />
     </div>
   )
 }
