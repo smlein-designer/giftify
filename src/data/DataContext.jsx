@@ -199,6 +199,13 @@ export function DataProvider({ children }) {
     setHolidayRecipients((prev) => prev.filter((hr) => hr.holiday_id !== id))
   }
 
+  const setDefaultRecipientsForHoliday = (holidayId, recipientIds) => {
+    setHolidayRecipients((prev) => [
+      ...prev.filter((hr) => hr.holiday_id !== holidayId),
+      ...recipientIds.map((rid) => ({ holiday_id: holidayId, recipient_id: rid })),
+    ])
+  }
+
   const value = {
     // Raw state
     holidays, recipients, products, occasions, gifts,
@@ -214,7 +221,7 @@ export function DataProvider({ children }) {
     addProduct, updateProduct, deleteProduct,
     addOccasion, updateOccasion, deleteOccasion,
     addGift, updateGift, deleteGift,
-    addHoliday, updateHoliday, deleteHoliday,
+    addHoliday, updateHoliday, deleteHoliday, setDefaultRecipientsForHoliday,
   }
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>
