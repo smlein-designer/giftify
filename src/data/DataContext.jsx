@@ -176,6 +176,17 @@ export function DataProvider({ children }) {
     setGifts((prev) => prev.map((g) => (g.id === id ? { ...g, ...data } : g)))
   }
 
+  const updateGiftRelations = (giftId, recipientIds, productIds) => {
+    setGiftRecipients((prev) => [
+      ...prev.filter((gr) => gr.gift_id !== giftId),
+      ...recipientIds.map((rid) => ({ gift_id: giftId, recipient_id: rid })),
+    ])
+    setGiftProducts((prev) => [
+      ...prev.filter((gp) => gp.gift_id !== giftId),
+      ...productIds.map((pid) => ({ gift_id: giftId, product_id: pid })),
+    ])
+  }
+
   const deleteGift = (id) => {
     setGifts((prev) => prev.filter((g) => g.id !== id))
     setGiftRecipients((prev) => prev.filter((gr) => gr.gift_id !== id))
@@ -220,7 +231,7 @@ export function DataProvider({ children }) {
     addRecipient, updateRecipient, deleteRecipient,
     addProduct, updateProduct, deleteProduct,
     addOccasion, updateOccasion, deleteOccasion,
-    addGift, updateGift, deleteGift,
+    addGift, updateGift, updateGiftRelations, deleteGift,
     addHoliday, updateHoliday, deleteHoliday, setDefaultRecipientsForHoliday,
   }
 

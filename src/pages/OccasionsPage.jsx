@@ -1,15 +1,12 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Gift, ChevronRight } from 'lucide-react'
-import {
-  getUpcomingOccasions,
-  getPastOccasions,
-  getHolidayById,
-  getGiftsForOccasion,
-  getGiftProgress,
-  daysUntil,
-  formatDate,
-} from '../data/helpers'
+import { Gift, ChevronRight, Plus } from 'lucide-react'
+import { useData } from '../data/DataContext'
+import { daysUntil, formatDate } from '../data/helpers'
 import Tag from '../components/ui/Tag'
+import Button from '../components/ui/Button'
+import SlidePanel from '../components/ui/SlidePanel'
+import OccasionForm from '../components/occasions/OccasionForm'
 
 function DaysAway({ days }) {
   if (days === 0) return <span className="text-sm font-semibold text-error">Today</span>
@@ -19,9 +16,8 @@ function DaysAway({ days }) {
   return <span className="text-sm text-muted">{days}d away</span>
 }
 
-function OccasionCard({ occasion }) {
-  const holiday = getHolidayById(occasion.holiday_id)
-  const { total, purchased } = getGiftProgress(occasion.id)
+function OccasionCard({ occasion, holiday, progress }) {
+  const { total, purchased } = progress
   const days = daysUntil(occasion.date)
   const shoppingOverdue =
     occasion.start_shopping_date && daysUntil(occasion.start_shopping_date) < 0
@@ -38,7 +34,7 @@ function OccasionCard({ occasion }) {
           <p className="text-sm text-muted mt-0.5">{formatDate(occasion.date)}</p>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             {total > 0 ? (
-              <Tag variant={purchased === total && total > 0 ? 'success' : 'default'}>
+              <Tag variant={purchased === total ? 'success' : 'default'}>
                 <Gift size={10} />
                 {purchased}/{total} ready
               </Tag>
@@ -61,22 +57,43 @@ function OccasionCard({ occasion }) {
 }
 
 export default function OccasionsPage() {
+  const { getUpcomingOccasions, getPastOccasions, getHolidayById, getGiftProgress, holidays, addOccasion } = useData()
+  const [panelOpen, setPanelOpen] = useState(false)
+
   const upcoming = getUpcomingOccasions()
   const past = getPastOccasions()
+
+  const handleSave = (formData) => {
+    addOccasion(formData)
+    setPanelOpen(false)
+  }
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-foreground">Occasions</h1>
+        <Button variant="primary" onClick={() => setPanelOpen(true)}>
+          <Plus size={16} />
+          Add occasion
+        </Button>
       </div>
 
       <section className="mb-10">
         <h2 className="text-sm font-medium text-muted uppercase tracking-widest mb-3">Upcoming</h2>
-        <div className="flex flex-col gap-2">
-          {upcoming.map((o) => (
-            <OccasionCard key={o.id} occasion={o} />
-          ))}
-        </div>
+        {upcoming.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {upcoming.map((o) => (
+              <OccasionCard
+                key={o.id}
+                occasion={o}
+                holiday={getHolidayById(o.holiday_id)}
+                progress={getGiftProgress(o.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted">No upcoming occasions.</p>
+        )}
       </section>
 
       {past.length > 0 && (
@@ -84,11 +101,20 @@ export default function OccasionsPage() {
           <h2 className="text-sm font-medium text-muted uppercase tracking-widest mb-3">Past</h2>
           <div className="flex flex-col gap-2">
             {past.map((o) => (
-              <OccasionCard key={o.id} occasion={o} />
+              <OccasionCard
+                key={o.id}
+                occasion={o}
+                holiday={getHolidayById(o.holiday_id)}
+                progress={getGiftProgress(o.id)}
+              />
             ))}
           </div>
         </section>
       )}
+
+      <SlidePanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} title="New occasion">
+        <OccasionForm holidays={holidays} onSave={handleSave} onCancel={() => setPanelOpen(false)} />
+      </SlidePanel>
     </div>
   )
 }
