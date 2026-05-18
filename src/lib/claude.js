@@ -1,11 +1,15 @@
+import { supabase } from './supabase'
+
 async function callClaude(prompt) {
+  const { data: { session } } = await supabase.auth.getSession()
+
   const res = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest`,
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        Authorization: `Bearer ${session?.access_token}`,
       },
       body: JSON.stringify({ prompt }),
     }
