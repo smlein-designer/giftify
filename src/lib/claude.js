@@ -1,27 +1,15 @@
-const API_URL = 'https://api.anthropic.com/v1/messages'
-
 async function callClaude(prompt) {
-  const key = import.meta.env.VITE_ANTHROPIC_API_KEY
-  if (!key) {
-    throw new Error(
-      'No API key found. Add VITE_ANTHROPIC_API_KEY to your .env.local file and restart the dev server.'
-    )
-  }
-
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1500,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  })
+  const res = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/suggest`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      },
+      body: JSON.stringify({ prompt }),
+    }
+  )
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
