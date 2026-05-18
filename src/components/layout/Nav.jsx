@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
-import { CalendarDays, Users, ShoppingBag, Sparkles } from 'lucide-react'
+import { CalendarDays, Users, ShoppingBag, Sparkles, LogOut } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
 
 const links = [
   { to: '/occasions', label: 'Occasions', icon: CalendarDays },
@@ -31,6 +32,13 @@ export default function Nav() {
             </NavLink>
           ))}
         </nav>
+        <button
+          onClick={() => supabase.auth.signOut()}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-muted hover:text-foreground hover:bg-surface transition-colors"
+        >
+          <LogOut size={15} />
+          Sign out
+        </button>
       </div>
     </header>
   )
