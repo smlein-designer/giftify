@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Upload, Loader2, X } from 'lucide-react'
+import { Upload, Loader2, X, Link2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import Button from '../ui/Button'
 
@@ -15,6 +15,7 @@ export default function ProductForm({ product, onSave, onCancel }) {
     photo_url: product?.photo_url ?? '',
   })
   const [uploading, setUploading] = useState(false)
+  const [grabbing, setGrabbing] = useState(false)
 
   const set = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
 
@@ -30,6 +31,30 @@ export default function ProductForm({ product, onSave, onCancel }) {
       set('photo_url', publicUrl)
     }
     setUploading(false)
+  }
+
+  const handleGrabPhoto = async () => {
+    if (!form.link) return
+    setGrabbing(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-og`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ url: form.link }),
+        }
+      )
+      const data = await res.json()
+      if (data.imageUrl) set('photo_url', data.imageUrl)
+    } catch {
+      // fail silently — user can still upload or paste a URL
+    }
+    setGrabbing(false)
   }
 
   const handleSubmit = (e) => {
@@ -148,6 +173,18 @@ export default function ProductForm({ product, onSave, onCancel }) {
           placeholder="or paste an image URL"
           className={inputClass}
         />
+
+        {!form.photo_url && form.link && (
+          <button
+            type="button"
+            onClick={handleGrabPhoto}
+            disabled={grabbing}
+            className="mt-2 text-sm text-accent hover:text-accent-hover font-medium flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+          >
+            {grabbing ? <Loader2 size={13} className="animate-spin" /> : <Link2 size={13} />}
+            {grabbing ? 'Fetching…' : 'Grab photo from buy link'}
+          </button>
+        )}
       </div>
 
       {/* Actions */}
