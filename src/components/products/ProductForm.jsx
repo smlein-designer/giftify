@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Upload, Loader2, X } from 'lucide-react'
+import { supabase } from '../../lib/supabase'
 import Button from '../ui/Button'
 
 const inputClass =
@@ -12,8 +14,23 @@ export default function ProductForm({ product, onSave, onCancel }) {
     price: product?.price ?? '',
     photo_url: product?.photo_url ?? '',
   })
+  const [uploading, setUploading] = useState(false)
 
   const set = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    const ext = file.name.split('.').pop()
+    const path = `${crypto.randomUUID()}.${ext}`
+    const { error } = await supabase.storage.from('product-photos').upload(path, file)
+    if (!error) {
+      const { data: { publicUrl } } = supabase.storage.from('product-photos').getPublicUrl(path)
+      set('photo_url', publicUrl)
+    }
+    setUploading(false)
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -84,26 +101,53 @@ export default function ProductForm({ product, onSave, onCancel }) {
         />
       </div>
 
-      {/* Photo URL */}
+      {/* Photo */}
       <div>
-        <label className="block text-xs text-muted mb-1.5">Photo URL</label>
+        <label className="block text-xs text-muted mb-1.5">Photo</label>
+
+        <div className="relative h-36 rounded-md overflow-hidden border border-border bg-surface mb-2 flex items-center justify-center">
+          {form.photo_url ? (
+            <>
+              <img
+                src={form.photo_url}
+                alt="Preview"
+                className="w-full h-full object-cover"
+                onError={(e) => { e.target.style.display = 'none' }}
+              />
+              <button
+                type="button"
+                onClick={() => set('photo_url', '')}
+                className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
+              >
+                <X size={12} />
+              </button>
+            </>
+          ) : (
+            <label className="cursor-pointer flex flex-col items-center gap-2 text-muted hover:text-foreground transition-colors">
+              {uploading ? (
+                <Loader2 size={20} className="animate-spin" />
+              ) : (
+                <Upload size={20} />
+              )}
+              <span className="text-xs">{uploading ? 'Uploading…' : 'Click to upload'}</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="sr-only"
+                disabled={uploading}
+              />
+            </label>
+          )}
+        </div>
+
         <input
           type="url"
           value={form.photo_url}
           onChange={(e) => set('photo_url', e.target.value)}
-          placeholder="https://... (paste an image URL)"
+          placeholder="or paste an image URL"
           className={inputClass}
         />
-        {form.photo_url && (
-          <div className="mt-2 h-24 rounded-md overflow-hidden border border-border bg-border/20">
-            <img
-              src={form.photo_url}
-              alt="Preview"
-              className="w-full h-full object-cover"
-              onError={(e) => { e.target.style.display = 'none' }}
-            />
-          </div>
-        )}
       </div>
 
       {/* Actions */}
