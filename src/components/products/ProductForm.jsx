@@ -16,6 +16,7 @@ export default function ProductForm({ product, onSave, onCancel }) {
   })
   const [uploading, setUploading] = useState(false)
   const [grabbing, setGrabbing] = useState(false)
+  const [grabFailed, setGrabFailed] = useState(false)
 
   const set = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
 
@@ -36,6 +37,7 @@ export default function ProductForm({ product, onSave, onCancel }) {
   const handleGrabPhoto = async () => {
     if (!form.link) return
     setGrabbing(true)
+    setGrabFailed(false)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       const res = await fetch(
@@ -50,9 +52,13 @@ export default function ProductForm({ product, onSave, onCancel }) {
         }
       )
       const data = await res.json()
-      if (data.imageUrl) set('photo_url', data.imageUrl)
+      if (data.imageUrl) {
+        set('photo_url', data.imageUrl)
+      } else {
+        setGrabFailed(true)
+      }
     } catch {
-      // fail silently — user can still upload or paste a URL
+      setGrabFailed(true)
     }
     setGrabbing(false)
   }
@@ -175,15 +181,20 @@ export default function ProductForm({ product, onSave, onCancel }) {
         />
 
         {!form.photo_url && form.link && (
-          <button
-            type="button"
-            onClick={handleGrabPhoto}
-            disabled={grabbing}
-            className="mt-2 text-sm text-accent hover:text-accent-hover font-medium flex items-center gap-1.5 disabled:opacity-50 transition-colors"
-          >
-            {grabbing ? <Loader2 size={13} className="animate-spin" /> : <Link2 size={13} />}
-            {grabbing ? 'Fetching…' : 'Grab photo from buy link'}
-          </button>
+          <div className="mt-2 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleGrabPhoto}
+              disabled={grabbing}
+              className="text-sm text-accent hover:text-accent-hover font-medium flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+            >
+              {grabbing ? <Loader2 size={13} className="animate-spin" /> : <Link2 size={13} />}
+              {grabbing ? 'Fetching…' : 'Grab photo from buy link'}
+            </button>
+            {grabFailed && (
+              <span className="text-xs text-muted">No image found — try uploading or pasting a URL.</span>
+            )}
+          </div>
         )}
       </div>
 
