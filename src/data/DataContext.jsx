@@ -140,20 +140,20 @@ export function DataProvider({ children, userId }) {
   const addRecipient = (data) => {
     const newRecipient = { ...data, id: crypto.randomUUID(), user_id: userId }
     setRecipients((prev) => [...prev, newRecipient])
-    supabase.from('recipients').insert(newRecipient)
+    supabase.from('recipients').insert(newRecipient).then(() => {})
     return newRecipient
   }
 
   const updateRecipient = (id, data) => {
     setRecipients((prev) => prev.map((r) => (r.id === id ? { ...r, ...data } : r)))
-    supabase.from('recipients').update(data).eq('id', id)
+    supabase.from('recipients').update(data).eq('id', id).then(() => {})
   }
 
   const deleteRecipient = (id) => {
     setRecipients((prev) => prev.filter((r) => r.id !== id))
     setGiftRecipients((prev) => prev.filter((gr) => gr.recipient_id !== id))
     setHolidayRecipients((prev) => prev.filter((hr) => hr.recipient_id !== id))
-    supabase.from('recipients').delete().eq('id', id)
+    supabase.from('recipients').delete().eq('id', id).then(() => {})
   }
 
   // ── Product mutations ───────────────────────────────────────────────
@@ -161,19 +161,19 @@ export function DataProvider({ children, userId }) {
   const addProduct = (data) => {
     const newProduct = { ...data, id: crypto.randomUUID(), user_id: userId }
     setProducts((prev) => [...prev, newProduct])
-    supabase.from('products').insert(newProduct)
+    supabase.from('products').insert(newProduct).then(() => {})
     return newProduct
   }
 
   const updateProduct = (id, data) => {
     setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, ...data } : p)))
-    supabase.from('products').update(data).eq('id', id)
+    supabase.from('products').update(data).eq('id', id).then(() => {})
   }
 
   const deleteProduct = (id) => {
     setProducts((prev) => prev.filter((p) => p.id !== id))
     setGiftProducts((prev) => prev.filter((gp) => gp.product_id !== id))
-    supabase.from('products').delete().eq('id', id)
+    supabase.from('products').delete().eq('id', id).then(() => {})
   }
 
   // ── Occasion mutations ──────────────────────────────────────────────
@@ -181,13 +181,13 @@ export function DataProvider({ children, userId }) {
   const addOccasion = (data) => {
     const newOccasion = { ...data, id: crypto.randomUUID(), user_id: userId }
     setOccasions((prev) => [...prev, newOccasion])
-    supabase.from('occasions').insert(newOccasion)
+    supabase.from('occasions').insert(newOccasion).then(() => {})
     return newOccasion
   }
 
   const updateOccasion = (id, data) => {
     setOccasions((prev) => prev.map((o) => (o.id === id ? { ...o, ...data } : o)))
-    supabase.from('occasions').update(data).eq('id', id)
+    supabase.from('occasions').update(data).eq('id', id).then(() => {})
   }
 
   const deleteOccasion = (id) => {
@@ -196,7 +196,7 @@ export function DataProvider({ children, userId }) {
     setGifts((prev) => prev.filter((g) => g.occasion_id !== id))
     setGiftRecipients((prev) => prev.filter((gr) => !occasionGiftIds.includes(gr.gift_id)))
     setGiftProducts((prev) => prev.filter((gp) => !occasionGiftIds.includes(gp.gift_id)))
-    supabase.from('occasions').delete().eq('id', id)
+    supabase.from('occasions').delete().eq('id', id).then(() => {})
   }
 
   // ── Gift mutations ──────────────────────────────────────────────────
@@ -208,15 +208,15 @@ export function DataProvider({ children, userId }) {
     setGifts((prev) => [...prev, newGift])
     setGiftRecipients((prev) => [...prev, ...grRows])
     setGiftProducts((prev) => [...prev, ...gpRows])
-    supabase.from('gifts').insert(newGift)
-    if (grRows.length > 0) supabase.from('gift_recipients').insert(grRows)
-    if (gpRows.length > 0) supabase.from('gift_products').insert(gpRows)
+    supabase.from('gifts').insert(newGift).then(() => {})
+    if (grRows.length > 0) supabase.from('gift_recipients').insert(grRows).then(() => {})
+    if (gpRows.length > 0) supabase.from('gift_products').insert(gpRows).then(() => {})
     return newGift
   }
 
   const updateGift = (id, data) => {
     setGifts((prev) => prev.map((g) => (g.id === id ? { ...g, ...data } : g)))
-    supabase.from('gifts').update(data).eq('id', id)
+    supabase.from('gifts').update(data).eq('id', id).then(() => {})
   }
 
   const updateGiftRelations = (giftId, recipientIds, productIds) => {
@@ -237,6 +237,7 @@ export function DataProvider({ children, userId }) {
           supabase
             .from('gift_recipients')
             .insert(recipientIds.map((rid) => ({ gift_id: giftId, recipient_id: rid })))
+            .then(() => {})
         }
       })
     supabase
@@ -248,6 +249,7 @@ export function DataProvider({ children, userId }) {
           supabase
             .from('gift_products')
             .insert(productIds.map((pid) => ({ gift_id: giftId, product_id: pid })))
+            .then(() => {})
         }
       })
   }
@@ -256,7 +258,7 @@ export function DataProvider({ children, userId }) {
     setGifts((prev) => prev.filter((g) => g.id !== id))
     setGiftRecipients((prev) => prev.filter((gr) => gr.gift_id !== id))
     setGiftProducts((prev) => prev.filter((gp) => gp.gift_id !== id))
-    supabase.from('gifts').delete().eq('id', id)
+    supabase.from('gifts').delete().eq('id', id).then(() => {})
   }
 
   // ── Holiday mutations ───────────────────────────────────────────────
@@ -264,19 +266,19 @@ export function DataProvider({ children, userId }) {
   const addHoliday = (data) => {
     const newHoliday = { ...data, id: crypto.randomUUID(), user_id: userId, is_system: false }
     setHolidays((prev) => [...prev, newHoliday])
-    supabase.from('holidays').insert(newHoliday)
+    supabase.from('holidays').insert(newHoliday).then(() => {})
     return newHoliday
   }
 
   const updateHoliday = (id, data) => {
     setHolidays((prev) => prev.map((h) => (h.id === id ? { ...h, ...data } : h)))
-    supabase.from('holidays').update(data).eq('id', id)
+    supabase.from('holidays').update(data).eq('id', id).then(() => {})
   }
 
   const deleteHoliday = (id) => {
     setHolidays((prev) => prev.filter((h) => h.id !== id))
     setHolidayRecipients((prev) => prev.filter((hr) => hr.holiday_id !== id))
-    supabase.from('holidays').delete().eq('id', id)
+    supabase.from('holidays').delete().eq('id', id).then(() => {})
   }
 
   const setDefaultRecipientsForHoliday = (holidayId, recipientIds) => {
@@ -293,6 +295,7 @@ export function DataProvider({ children, userId }) {
           supabase
             .from('holiday_recipients')
             .insert(recipientIds.map((rid) => ({ holiday_id: holidayId, recipient_id: rid })))
+            .then(() => {})
         }
       })
   }
