@@ -3,7 +3,106 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-paper text-ink font-sans antialiased;
+    font-size: 15px;
+    line-height: 1.55;
+    font-feature-settings: 'ss01', 'cv11';
+    overflow-wrap: break-word;
+  }
+  h1 {
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+    letter-spacing: -0.01em;
+  }
+  ::selection {
+    @apply bg-focus text-ink;
+  }
+  :focus-visible {
+    outline: 2px solid theme('colors.ink.DEFAULT');
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* Form fields */
+  .field-label {
+    @apply block text-[13px] font-medium text-ink-soft mb-1.5;
+  }
+  .field {
+    @apply w-full h-11 px-3.5 rounded-md border border-line-strong bg-card text-ink text-[15px]
+      placeholder:text-ink-faint transition-shadow
+      focus:outline-none focus:border-ink focus:ring-4 focus:ring-focus;
+  }
+  .field-area {
+    @apply w-full px-3.5 py-3 rounded-md border border-line-strong bg-card text-ink text-[15px]
+      placeholder:text-ink-faint resize-none transition-shadow
+      focus:outline-none focus:border-ink focus:ring-4 focus:ring-focus;
+  }
+  .field[aria-invalid='true'],
+  .field-area[aria-invalid='true'] {
+    @apply border-danger focus:border-danger focus:ring-amber-tint;
+  }
+  select.field {
+    @apply appearance-none pr-9 bg-no-repeat;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23474F6D' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+    background-position: right 12px center;
+  }
+
+  /* Toggle chips (recipient pickers, type pickers) */
+  .chip {
+    @apply inline-flex items-center gap-2 h-10 px-3.5 rounded-full border text-[14px] transition-colors
+      border-line-strong bg-card text-ink-soft hover:border-ink-faint hover:text-ink;
+  }
+  .chip-on {
+    @apply border-ink bg-ink text-paper hover:text-paper hover:border-ink;
+  }
+
+  /* Surfaces */
+  .card {
+    @apply bg-card border border-line rounded-xl;
+  }
+  .card-link {
+    @apply bg-card border border-line rounded-xl transition-all duration-200
+      hover:border-line-strong hover:shadow-paper hover:-translate-y-px;
+  }
+
+  /* Small all-caps-free label used above values */
+  .eyebrow {
+    @apply text-[12px] font-medium text-ink-faint;
+  }
+
+  /* Text links inside cards */
+  .text-action {
+    @apply inline-flex items-center gap-1.5 text-[14px] font-medium text-ink-soft hover:text-ink transition-colors;
+  }
+}
+
+@layer utilities {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .pb-safe {
+    padding-bottom: max(env(safe-area-inset-bottom), 0px);
+  }
+}
+
+/* Respect the "reduce motion" system setting */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

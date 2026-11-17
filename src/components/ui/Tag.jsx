@@ -1,13 +1,15 @@
-export default function Tag({ children, variant = 'default' }) {
-  const variants = {
-    default: 'bg-surface border-border text-foreground',
-    accent: 'bg-accent/10 border-accent/30 text-accent-hover',
-    success: 'bg-success/10 border-success/30 text-success',
-    warning: 'bg-amber-50 border-amber-200 text-amber-700',
-  }
+const variants = {
+  default: 'bg-sand text-ink-soft',
+  accent: 'bg-amber-tint text-amber-deep',
+  success: 'bg-sage-tint text-sage',
+  warning: 'bg-ochre-tint text-ochre',
+  outline: 'border border-line-strong text-ink-soft',
+}
+
+export default function Tag({ children, variant = 'default', className = '' }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border text-xs font-normal ${variants[variant]}`}
+      className={`inline-flex items-center gap-1 h-6 px-2.5 rounded-full text-[12px] font-medium whitespace-nowrap ${variants[variant]} ${className}`}
     >
       {children}
     </span>

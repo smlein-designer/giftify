@@ -1,13 +1,16 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Button from '../ui/Button'
+import Avatar from '../ui/Avatar'
+import Field, { isEmail, focusFirstError } from '../ui/Field'
+import { RECIPIENT_GLYPHS, iconFor } from '../../lib/glyph'
 
 const GROUPS = ['Family', 'Friends', 'Coworkers', 'Other']
-const EMOJI_OPTIONS = ['👤', '👶', '🧒', '👦', '👧', '🧑', '👩', '👨', '🧓', '👴', '👵', '🐶', '🐱', '🐾', '🐰', '🐹']
-
-const inputClass =
-  'w-full h-10 px-3 border border-border rounded-md bg-white text-foreground text-sm placeholder:text-muted/60 focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/20'
 
 export default function RecipientForm({ recipient, onSave, onCancel }) {
+  const formRef = useRef(null)
+  const submitted = useRef(false)
+  const [saving, setSaving] = useState(false)
+  const [errors, setErrors] = useState({})
   const [form, setForm] = useState({
     name: recipient?.name ?? '',
     emoji: recipient?.emoji ?? '👤',
@@ -19,119 +22,143 @@ export default function RecipientForm({ recipient, onSave, onCancel }) {
     phone: recipient?.phone ?? '',
   })
 
-  const set = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
+  const set = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }))
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }))
+  }
+
+  const validate = () => {
+    const e = {}
+    if (!form.name.trim()) e.name = 'Add a name so you can find them later.'
+    if (form.email.trim() && !isEmail(form.email.trim())) e.email = "That email doesn't look complete."
+    return e
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!form.name.trim()) return
-    onSave(form)
+    if (submitted.current) return
+    const errs = validate()
+    if (Object.keys(errs).length) {
+      setErrors(errs)
+      focusFirstError(formRef.current)
+      return
+    }
+    submitted.current = true
+    setSaving(true)
+    onSave({ ...form, name: form.name.trim(), email: form.email.trim() })
   }
 
-  return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      {/* Emoji + Name */}
-      <div className="flex gap-3">
-        <div>
-          <label className="block text-xs text-muted mb-1.5">Emoji</label>
-          <select
-            value={form.emoji}
-            onChange={(e) => set('emoji', e.target.value)}
-            className="h-10 px-2 border border-border rounded-md bg-white text-foreground text-base focus:outline-none focus:border-accent/60"
-          >
-            {EMOJI_OPTIONS.map((e) => (
-              <option key={e} value={e}>
-                {e}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex-1">
-          <label className="block text-xs text-muted mb-1.5">
-            Name <span className="text-accent">*</span>
-          </label>
-          <input
-            type="text"
-            value={form.name}
-            onChange={(e) => set('name', e.target.value)}
-            placeholder="e.g. Mom, Lucky"
-            className={inputClass}
-            required
-          />
-        </div>
-      </div>
+  const currentGlyph = iconFor(form.emoji) ? form.emoji : '👤'
 
-      {/* Group + Budget */}
-      <div className="flex gap-3">
-        <div className="flex-1">
-          <label className="block text-xs text-muted mb-1.5">Group</label>
-          <select
-            value={form.group_tag}
-            onChange={(e) => set('group_tag', e.target.value)}
-            className={inputClass}
-          >
+  return (
+    <form ref={formRef} onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+      <Field label="Name" required error={errors.name}>
+        <input
+          type="text"
+          value={form.name}
+          onChange={(e) => set('name', e.target.value)}
+          placeholder="e.g. Mom, Lucky"
+          className="field"
+          maxLength={60}
+          autoComplete="off"
+        />
+      </Field>
+
+      <fieldset>
+        <legend className="field-label">Avatar</legend>
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Avatar">
+          {RECIPIENT_GLYPHS.map((g) => {
+            const selected = currentGlyph === g.value
+            return (
+              <button
+                key={g.value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                title={g.label}
+                aria-label={g.label}
+                onClick={() => set('emoji', g.value)}
+                className={`rounded-full p-0.5 transition-shadow ${selected ? 'ring-2 ring-ink' : 'ring-1 ring-transparent hover:ring-line-strong'}`}
+              >
+                <Avatar emoji={g.value} name={form.name || 'A'} size="md" />
+              </button>
+            )
+          })}
+        </div>
+      </fieldset>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Group">
+          <select value={form.group_tag} onChange={(e) => set('group_tag', e.target.value)} className="field">
             {GROUPS.map((g) => (
               <option key={g} value={g}>
                 {g}
               </option>
             ))}
           </select>
-        </div>
-        <div className="flex-1">
-          <label className="block text-xs text-muted mb-1.5">Budget</label>
+        </Field>
+        <Field label="Budget">
           <input
             type="text"
             value={form.budget}
             onChange={(e) => set('budget', e.target.value)}
             placeholder="e.g. $50–75"
-            className={inputClass}
+            className="field"
+            maxLength={30}
           />
-        </div>
+        </Field>
       </div>
 
-      {/* Gift prompt */}
-      <div>
-        <label className="block text-xs text-muted mb-1.5">Gift-giving notes</label>
+      <Field label="What they love" hint="Interests, tastes, things to avoid. Gift ideas get much better with a few details.">
         <textarea
           value={form.gift_prompt}
           onChange={(e) => set('gift_prompt', e.target.value)}
-          placeholder="Personality, interests, things they love or hate — anything helpful for picking gifts"
+          placeholder="e.g. Loves gardening and cooking shows. Quality over quantity."
           rows={4}
-          className="w-full px-3 py-2.5 border border-border rounded-md bg-white text-foreground text-sm placeholder:text-muted/60 focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/20 resize-none"
+          className="field-area"
         />
-      </div>
+      </Field>
 
-      {/* Contact details */}
-      <div>
-        <p className="text-xs text-muted mb-2">Contact details (optional)</p>
-        <div className="flex flex-col gap-2">
+      <fieldset className="flex flex-col gap-3">
+        <legend className="font-display font-semibold text-[15px] text-ink mb-1">
+          Contact details <span className="font-sans font-normal text-[13px] text-ink-faint">(optional)</span>
+        </legend>
+        <Field label="Shipping address">
           <input
             type="text"
             value={form.shipping_address}
             onChange={(e) => set('shipping_address', e.target.value)}
-            placeholder="Shipping address"
-            className={inputClass}
+            className="field"
+            autoComplete="off"
           />
-          <input
-            type="email"
-            value={form.email}
-            onChange={(e) => set('email', e.target.value)}
-            placeholder="Email"
-            className={inputClass}
-          />
-          <input
-            type="tel"
-            value={form.phone}
-            onChange={(e) => set('phone', e.target.value)}
-            placeholder="Phone"
-            className={inputClass}
-          />
+        </Field>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Email" error={errors.email}>
+            <input
+              type="email"
+              inputMode="email"
+              value={form.email}
+              onChange={(e) => set('email', e.target.value)}
+              className="field"
+              autoComplete="off"
+            />
+          </Field>
+          <Field label="Phone">
+            <input
+              type="tel"
+              inputMode="tel"
+              value={form.phone}
+              onChange={(e) => set('phone', e.target.value)}
+              className="field"
+              autoComplete="off"
+            />
+          </Field>
         </div>
-      </div>
+      </fieldset>
 
-      {/* Actions */}
-      <div className="flex gap-2 pt-2">
-        <Button type="submit" variant="primary" className="flex-1">
-          {recipient ? 'Save changes' : 'Add recipient'}
+      <div className="flex gap-2 pt-4 mt-2 border-t border-line">
+        <Button type="submit" className="flex-1" disabled={saving}>
+          {saving ? 'Saving…' : recipient ? 'Save changes' : 'Add person'}
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel

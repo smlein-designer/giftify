@@ -1,8 +1,14 @@
 import { useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Pencil, Trash2, Plus, Sparkles } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Pencil, Trash2, Plus, Sparkles, ArrowRight, Gift as GiftIcon } from 'lucide-react'
 import { useData } from '../data/DataContext'
-import { formatDate, daysUntil } from '../data/helpers'
+import { formatDate, formatShort, daysUntil, formatMoney } from '../data/helpers'
+import Avatar from '../components/ui/Avatar'
+import IconTile from '../components/ui/IconTile'
+import Progress from '../components/ui/Progress'
+import StatusStepper from '../components/ui/StatusStepper'
+import { BackLink, SectionHeader, EmptyState, NotFound } from '../components/ui/PageHeader'
+import { useConfirm } from '../components/ui/ConfirmDialog'
 import { suggestForGift } from '../lib/claude'
 import Tag from '../components/ui/Tag'
 import Button from '../components/ui/Button'
@@ -50,6 +56,7 @@ export default function OccasionDetailPage() {
     addProduct,
   } = useData()
 
+  const confirm = useConfirm()
   const occasion = getOccasionById(id)
   const [editOccasionOpen, setEditOccasionOpen] = useState(false)
   const [addGiftOpen, setAddGiftOpen] = useState(false)
@@ -63,7 +70,7 @@ export default function OccasionDetailPage() {
   const [suggestions, setSuggestions] = useState([])
   const [suggestGiftId, setSuggestGiftId] = useState(null)
 
-  if (!occasion) return <p className="text-muted">Occasion not found.</p>
+  if (!occasion) return <NotFound title="We couldn't find that occasion" backTo="/occasions" backLabel="Back to occasions" />
 
   const holiday = getHolidayById(occasion.holiday_id)
   const gifts = getGiftsForOccasion(id)
@@ -77,43 +84,58 @@ export default function OccasionDetailPage() {
   // ── Occasion actions ────────────────────────────────────────────────
 
   const handleSaveOccasion = (formData) => {
-    updateOccasion(id, formData)
+    updateOccasion(id, formData, { success: 'Changes saved' })
     setEditOccasionOpen(false)
   }
 
-  const handleDeleteOccasion = () => {
-    if (!window.confirm(`Remove "${occasion.name}"? Its gifts will also be deleted.`)) return
-    deleteOccasion(id)
+  const handleDeleteOccasion = async () => {
+    const n = gifts.length
+    const ok = await confirm({
+      title: `Delete ${occasion.name}?`,
+      body:
+        n > 0
+          ? `This also deletes its ${n} gift${n === 1 ? '' : 's'} and their notes. This can't be undone.`
+          : "This can't be undone.",
+      confirmLabel: 'Delete occasion',
+    })
+    if (!ok) return
+    deleteOccasion(id, { success: `${occasion.name} deleted` })
     navigate('/occasions')
   }
 
   // ── Gift actions ─────────────────────────────────────────────────────
 
   const handleAddGift = (giftData, recipientIds, productIds) => {
-    addGift(giftData, recipientIds, productIds)
+    addGift(giftData, recipientIds, productIds, { success: 'Gift added' })
     setAddGiftOpen(false)
   }
 
   const handleSaveGift = (giftData, recipientIds, productIds) => {
     updateGift(editingGiftId, giftData)
-    updateGiftRelations(editingGiftId, recipientIds, productIds)
+    updateGiftRelations(editingGiftId, recipientIds, productIds, { success: 'Gift updated' })
     setEditingGiftId(null)
   }
 
-  const handleDeleteGift = (giftId, giftName) => {
-    if (!window.confirm(`Remove "${giftName}"?`)) return
-    deleteGift(giftId)
+  const handleDeleteGift = async (giftId, giftName) => {
+    const ok = await confirm({
+      title: `Delete ${giftName}?`,
+      body: "Its status and notes will be lost. Products stay in your gift library.",
+      confirmLabel: 'Delete gift',
+    })
+    if (!ok) return
+    deleteGift(giftId, { success: 'Gift deleted' })
   }
 
   const handleAdvanceStatus = (gift) => {
     const next = nextStatus(gift)
     if (!next) return
-    if (gift.type === 'physical') updateGift(gift.id, { physical_status: next })
-    if (gift.type === 'experience') updateGift(gift.id, { experience_status: next })
+    const opts = { success: `Marked ${next}` }
+    if (gift.type === 'physical') updateGift(gift.id, { physical_status: next }, opts)
+    if (gift.type === 'experience') updateGift(gift.id, { experience_status: next }, opts)
   }
 
   const handleAutoCreate = () => {
-    defaultRecipients.forEach((r) => {
+    defaultRecipients.forEach((r, i) => {
       addGift(
         {
           occasion_id: id,
@@ -125,7 +147,10 @@ export default function OccasionDetailPage() {
           reception_notes: null,
         },
         [r.id],
-        []
+        [],
+        i === defaultRecipients.length - 1
+          ? { success: `Added ${defaultRecipients.length} placeholder gift${defaultRecipients.length === 1 ? '' : 's'}` }
+          : {}
       )
     })
   }
@@ -205,169 +230,195 @@ export default function OccasionDetailPage() {
     ? getProductsForGift(editingGiftId).map((p) => p.id)
     : []
 
+  // ── Summary numbers ──────────────────────────────────────────────────
+
+  const readyCount = gifts.filter((g) => {
+    const st = g.physical_status || g.experience_status
+    return st && !['idea', 'planned'].includes(st)
+  }).length
+  const plannedSpend = gifts.reduce(
+    (sum, g) => sum + getProductsForGift(g.id).reduce((s2, p) => s2 + (Number(p.price) || 0), 0),
+    0
+  )
+
+  const stats = [
+    {
+      label: days >= 0 ? (days === 1 ? 'Day to go' : 'Days to go') : 'Days ago',
+      value: Math.abs(days),
+      tone: days >= 0 && days <= 14 ? 'text-amber' : 'text-ink',
+    },
+    { label: 'Gifts ready', value: `${readyCount}/${gifts.length}`, progress: true },
+    occasion.start_shopping_date && {
+      label: daysUntil(occasion.start_shopping_date) < 0 && days >= 0 ? 'Shopping started' : 'Start shopping',
+      value: formatShort(occasion.start_shopping_date),
+    },
+    occasion.ship_date && { label: 'Ship by', value: formatShort(occasion.ship_date) },
+    { label: 'Planned spend', value: formatMoney(plannedSpend) || '$0' },
+  ].filter(Boolean)
+
   return (
     <div>
-      <Link to="/occasions" className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground mb-6">
-        <ArrowLeft size={14} /> Occasions
-      </Link>
+      <BackLink to="/occasions">Occasions</BackLink>
 
       {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-start gap-3">
-          <span className="text-3xl mt-0.5">{holiday?.icon ?? '📅'}</span>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{occasion.name}</h1>
-            <p className="text-muted mt-1 text-sm">
-              {formatDate(occasion.date)} ·{' '}
-              {days >= 0 ? `${days} day${days !== 1 ? 's' : ''} away` : `${Math.abs(days)} days ago`}
-            </p>
+      <header className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between mb-8">
+        <div className="flex items-start gap-4 min-w-0">
+          <IconTile icon={holiday?.icon ?? '📅'} name={holiday?.name ?? occasion.name} size="lg" />
+          <div className="min-w-0">
+            <h1 className="text-[30px] md:text-[36px] leading-[1.05] font-semibold text-ink">{occasion.name}</h1>
+            <p className="text-ink-soft mt-2">{formatDate(occasion.date)}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Button variant="secondary" onClick={() => setEditOccasionOpen(true)}>
-            <Pencil size={14} />
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Button size="sm" variant="secondary" onClick={() => setEditOccasionOpen(true)}>
+            <Pencil size={14} strokeWidth={1.75} />
             Edit
           </Button>
-          <Button variant="ghost" onClick={handleDeleteOccasion}>
-            <Trash2 size={14} />
-            Delete
+          <Button size="icon" variant="danger" onClick={handleDeleteOccasion} aria-label="Delete occasion">
+            <Trash2 size={17} strokeWidth={1.75} />
           </Button>
         </div>
-      </div>
+      </header>
 
-      {/* Planning dates */}
-      {(occasion.start_shopping_date || occasion.ship_date) && (
-        <div className="flex gap-6 mb-5 p-4 bg-surface border border-border rounded-md">
-          {occasion.start_shopping_date && (
-            <div>
-              <p className="text-xs text-muted uppercase tracking-wider">Start Shopping</p>
-              <p className="text-sm font-medium text-foreground mt-0.5">{formatDate(occasion.start_shopping_date)}</p>
-            </div>
-          )}
-          {occasion.ship_date && (
-            <div>
-              <p className="text-xs text-muted uppercase tracking-wider">Ship By</p>
-              <p className="text-sm font-medium text-foreground mt-0.5">{formatDate(occasion.ship_date)}</p>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Summary strip */}
+      <div className={`grid grid-cols-2 gap-px bg-line rounded-xl overflow-hidden border border-line mb-8 ${stats.length >= 5 ? 'sm:grid-cols-5' : stats.length === 4 ? 'sm:grid-cols-4' : 'sm:grid-cols-3'}`}>
+        {stats.map((st) => (
+          <div key={st.label} className="bg-card px-4 py-4 [&:nth-child(odd):last-child]:col-span-2 sm:[&:nth-child(odd):last-child]:col-span-1">
+            <p className="eyebrow">{st.label}</p>
+            <p className={`font-display font-semibold text-[24px] leading-tight mt-1 ${/^[\d$/,.]+$/.test(String(st.value)) ? 'tracking-numeral' : 'tracking-[-0.03em]'} ${st.tone ?? 'text-ink'}`}>{st.value}</p>
+            {st.progress && <Progress value={readyCount} total={gifts.length} className="mt-2.5" />}
+          </div>
+        ))}
+      </div>
 
       {occasion.notes && (
-        <p className="text-sm text-muted mb-5 italic">{occasion.notes}</p>
+        <div className="mb-10 rounded-xl bg-sand/70 px-5 py-4">
+          <p className="eyebrow mb-1">Notes</p>
+          <p className="text-ink">{occasion.notes}</p>
+        </div>
       )}
 
-      {/* Gifts section header */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-medium text-muted uppercase tracking-widest">
-          Gifts ({gifts.length})
-        </h2>
-        <div className="flex items-center gap-2">
-          {canAutoCreate && gifts.length === 0 && (
-            <Button variant="secondary" onClick={handleAutoCreate}>
-              <Sparkles size={14} />
-              Auto-create
+      {/* Gifts */}
+      <SectionHeader
+        title="Gifts"
+        count={gifts.length}
+        className="mt-2"
+        action={
+          <div className="flex items-center gap-2">
+            {canAutoCreate && gifts.length === 0 && (
+              <Button size="sm" variant="secondary" onClick={handleAutoCreate}>
+                <Sparkles size={14} strokeWidth={1.75} />
+                Auto-create
+              </Button>
+            )}
+            <Button size="sm" onClick={() => setAddGiftOpen(true)}>
+              <Plus size={15} strokeWidth={2} />
+              Add gift
             </Button>
-          )}
-          <Button variant="primary" onClick={() => setAddGiftOpen(true)}>
-            <Plus size={14} />
-            Add gift
-          </Button>
-        </div>
-      </div>
+          </div>
+        }
+      />
 
-      {/* Gift cards */}
       {gifts.length > 0 ? (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           {gifts.map((gift) => {
             const giftRecipients = getRecipientsForGift(gift.id)
             const giftProducts = getProductsForGift(gift.id)
             const next = nextStatus(gift)
             const done = isDone(gift)
-            const total = giftProducts.reduce((sum, p) => sum + (p.price || 0), 0)
+            const total = giftProducts.reduce((sum, p) => sum + (Number(p.price) || 0), 0)
+            const steps = gift.type === 'experience' ? EXPERIENCE_STATUSES : gift.type === 'physical' ? PHYSICAL_STATUSES : null
+            const lead = giftRecipients[0]
 
             return (
-              <div
-                key={gift.id}
-                className={`p-4 bg-surface border rounded-md ${done ? 'border-success/30' : 'border-border'}`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <p className="font-bold text-foreground leading-snug">{gift.name}</p>
-                  <Tag variant={done ? 'success' : 'default'}>{statusLabel(gift)}</Tag>
-                </div>
-
-                {giftRecipients.length > 0 && (
-                  <p className="text-sm text-muted mt-1">
-                    For {giftRecipients.map((r) => `${r.emoji} ${r.name}`).join(', ')}
-                  </p>
-                )}
-
-                {giftProducts.length > 0 && (
-                  <p className="text-sm text-muted mt-0.5">
-                    {giftProducts.map((p) => p.name).join(' + ')}
-                    {total > 0 && ` · $${total}`}
-                  </p>
-                )}
-
-                {gift.notes && (
-                  <p className="text-sm text-muted mt-1 italic">{gift.notes}</p>
-                )}
-
-                {gift.reception_notes && (
-                  <p className="text-xs text-success mt-2">✓ {gift.reception_notes}</p>
-                )}
-
-                <div className="flex items-center gap-3 mt-3 pt-3 border-t border-border/60">
-                  {next && (
-                    <button
-                      type="button"
-                      onClick={() => handleAdvanceStatus(gift)}
-                      className="text-sm text-accent hover:text-accent-hover font-medium transition-colors"
-                    >
-                      → Mark as {next}
-                    </button>
+              <article key={gift.id} className={`card p-5 ${done ? 'bg-sage-tint/40 border-sage/20' : ''}`}>
+                <div className="flex items-start gap-3.5">
+                  {lead ? (
+                    <Avatar emoji={lead.emoji} name={lead.name} size="md" />
+                  ) : (
+                    <span className="w-12 h-12 rounded-full bg-sand text-ink-faint inline-flex items-center justify-center shrink-0">
+                      <GiftIcon size={20} strokeWidth={1.75} />
+                    </span>
                   )}
-                  <div className="flex items-center gap-2 ml-auto">
-                    {getRecipientsForGift(gift.id).length > 0 && (
-                      <button
-                        type="button"
-                        onClick={() => fetchSuggestions(gift.id)}
-                        className="text-sm text-muted hover:text-foreground transition-colors inline-flex items-center gap-1"
-                      >
-                        <Sparkles size={12} />
-                        Ideas
-                      </button>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-display font-semibold text-[17px] text-ink leading-snug">{gift.name}</p>
+                      {gift.type && (
+                        <Tag variant="outline" className="capitalize hidden sm:inline-flex">{gift.type}</Tag>
+                      )}
+                    </div>
+                    {giftRecipients.length > 0 && (
+                      <p className="text-[14px] text-ink-soft mt-0.5">
+                        For {giftRecipients.map((r) => r.name).join(', ')}
+                      </p>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => setEditingGiftId(gift.id)}
-                      className="text-sm text-muted hover:text-foreground transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteGift(gift.id, gift.name)}
-                      className="text-sm text-muted hover:text-error transition-colors"
-                    >
-                      Delete
-                    </button>
+                    {giftProducts.length > 0 && (
+                      <p className="text-[14px] text-ink mt-2">
+                        {giftProducts.map((p) => p.name).join(' + ')}
+                        {total > 0 && <span className="text-ink-soft tabular"> · {formatMoney(total)}</span>}
+                      </p>
+                    )}
+                    {gift.notes && <p className="text-[14px] text-ink-soft mt-1.5">{gift.notes}</p>}
                   </div>
                 </div>
-              </div>
+
+                <div className="mt-5">
+                  {steps ? (
+                    <StatusStepper steps={steps} current={statusLabel(gift)} />
+                  ) : (
+                    <p className="text-[13px] text-ink-faint">Still an idea. Choose physical or experience to track progress.</p>
+                  )}
+                </div>
+
+                {gift.reception_notes && (
+                  <p className="mt-4 rounded-md bg-sage-tint px-3.5 py-2.5 text-[14px] text-sage">
+                    “{gift.reception_notes}”
+                  </p>
+                )}
+
+                <div className="flex flex-wrap items-center gap-1 mt-4 pt-4 border-t border-line">
+                  {next && (
+                    <Button size="sm" variant="secondary" type="button" onClick={() => handleAdvanceStatus(gift)} className="mr-auto">
+                      Mark {next}
+                      <ArrowRight size={14} strokeWidth={1.75} />
+                    </Button>
+                  )}
+                  <div className="flex items-center gap-0.5 ml-auto">
+                    {giftRecipients.length > 0 && (
+                      <Button size="sm" variant="ghost" type="button" onClick={() => fetchSuggestions(gift.id)}>
+                        <Sparkles size={14} strokeWidth={1.75} className="text-amber" />
+                        Ideas
+                      </Button>
+                    )}
+                    <Button size="sm" variant="ghost" type="button" onClick={() => setEditingGiftId(gift.id)}>
+                      Edit
+                    </Button>
+                    <Button size="sm" variant="danger" type="button" onClick={() => handleDeleteGift(gift.id, gift.name)}>
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </article>
             )
           })}
         </div>
       ) : (
-        <div className="p-6 bg-surface border border-border rounded-md text-center">
-          <p className="text-sm text-muted mb-3">No gifts yet for this occasion.</p>
-          {canAutoCreate && (
-            <Button variant="secondary" onClick={handleAutoCreate}>
-              <Sparkles size={14} />
-              Auto-create from default recipients
-            </Button>
-          )}
-        </div>
+        <EmptyState
+          icon={GiftIcon}
+          title="No gifts planned yet"
+          action={
+            canAutoCreate && (
+              <Button variant="secondary" onClick={handleAutoCreate}>
+                <Sparkles size={15} strokeWidth={1.75} />
+                Add one for each default person
+              </Button>
+            )
+          }
+        >
+          {canAutoCreate
+            ? `Start a placeholder for ${defaultRecipients.map((r) => r.name).join(', ')}, then fill in ideas as they come.`
+            : 'Add a gift to start planning.'}
+        </EmptyState>
       )}
 
       {/* Edit occasion panel */}

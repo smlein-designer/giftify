@@ -1,15 +1,19 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Button from '../ui/Button'
+import IconTile from '../ui/IconTile'
+import Field, { focusFirstError } from '../ui/Field'
+import { HOLIDAY_GLYPHS } from '../../lib/glyph'
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ]
 
-const inputClass =
-  'w-full h-10 px-3 border border-border rounded-md bg-white text-foreground text-sm placeholder:text-muted/60 focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/20'
-
 export default function HolidayForm({ holiday, onSave, onCancel }) {
+  const formRef = useRef(null)
+  const submitted = useRef(false)
+  const [saving, setSaving] = useState(false)
+  const [errors, setErrors] = useState({})
   const [form, setForm] = useState({
     name: holiday?.name ?? '',
     icon: holiday?.icon ?? '🎉',
@@ -17,63 +21,80 @@ export default function HolidayForm({ holiday, onSave, onCancel }) {
     day: holiday?.date_logic?.day ?? 1,
   })
 
-  const set = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
+  const set = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }))
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }))
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!form.name.trim()) return
+    if (submitted.current) return
+    if (!form.name.trim()) {
+      setErrors({ name: "Give this date a name, like “Dad's Birthday”." })
+      focusFirstError(formRef.current)
+      return
+    }
+    submitted.current = true
+    setSaving(true)
     onSave({
       name: form.name.trim(),
-      icon: form.icon.trim() || '🎉',
+      icon: form.icon || '🎉',
       date_logic: { type: 'fixed', month: Number(form.month), day: Number(form.day) },
     })
   }
 
+  // Leap year so Feb 29 stays available
   const daysInMonth = new Date(2024, Number(form.month), 0).getDate()
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      {/* Icon + Name */}
-      <div className="flex gap-3">
-        <div>
-          <label className="block text-xs text-muted mb-1.5">Icon</label>
-          <input
-            type="text"
-            value={form.icon}
-            onChange={(e) => set('icon', e.target.value)}
-            maxLength={2}
-            placeholder="🎉"
-            className="w-14 h-10 px-2 text-center text-xl border border-border rounded-md bg-white focus:outline-none focus:border-accent/60"
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block text-xs text-muted mb-1.5">
-            Name <span className="text-accent">*</span>
-          </label>
-          <input
-            type="text"
-            value={form.name}
-            onChange={(e) => set('name', e.target.value)}
-            placeholder="e.g. Dad's Birthday"
-            className={inputClass}
-            required
-          />
-        </div>
-      </div>
+    <form ref={formRef} onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+      <Field label="Name" required error={errors.name}>
+        <input
+          type="text"
+          value={form.name}
+          onChange={(e) => set('name', e.target.value)}
+          placeholder="e.g. Dad's Birthday"
+          className="field"
+          maxLength={60}
+          autoComplete="off"
+        />
+      </Field>
 
-      {/* Date */}
-      <div>
-        <label className="block text-xs text-muted mb-1.5">Date (repeats every year)</label>
+      <fieldset>
+        <legend className="field-label">Icon</legend>
+        <div className="grid grid-cols-8 gap-1.5" role="radiogroup" aria-label="Icon">
+          {HOLIDAY_GLYPHS.map((g) => {
+            const selected = form.icon === g.value
+            return (
+              <button
+                key={g.value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                title={g.label}
+                aria-label={g.label}
+                onClick={() => set('icon', g.value)}
+                className={`rounded-[14px] p-0.5 transition-shadow ${selected ? 'ring-2 ring-ink' : 'ring-1 ring-transparent hover:ring-line-strong'}`}
+              >
+                <IconTile icon={g.value} name={form.name || 'date'} size="sm" />
+              </button>
+            )
+          })}
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className="field-label">Date</legend>
         <div className="flex gap-2">
           <select
+            aria-label="Month"
             value={form.month}
             onChange={(e) => {
-              set('month', e.target.value)
-              // clamp day if it exceeds new month's days
-              const newMax = new Date(2024, Number(e.target.value), 0).getDate()
-              if (Number(form.day) > newMax) set('day', newMax)
+              const m = e.target.value
+              const max = new Date(2024, Number(m), 0).getDate()
+              setForm((prev) => ({ ...prev, month: m, day: Math.min(Number(prev.day), max) }))
             }}
-            className={`${inputClass} flex-1`}
+            className="field flex-1"
           >
             {MONTHS.map((m, i) => (
               <option key={m} value={i + 1}>
@@ -81,11 +102,7 @@ export default function HolidayForm({ holiday, onSave, onCancel }) {
               </option>
             ))}
           </select>
-          <select
-            value={form.day}
-            onChange={(e) => set('day', e.target.value)}
-            className="w-20 h-10 px-3 border border-border rounded-md bg-white text-foreground text-sm focus:outline-none focus:border-accent/60"
-          >
+          <select aria-label="Day" value={form.day} onChange={(e) => set('day', e.target.value)} className="field w-24">
             {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => (
               <option key={d} value={d}>
                 {d}
@@ -93,12 +110,14 @@ export default function HolidayForm({ holiday, onSave, onCancel }) {
             ))}
           </select>
         </div>
-      </div>
+        <p className="text-[13px] text-ink-faint mt-1.5">
+          Repeats every year. {holiday ? '' : "We'll set up occasions for the next three years."}
+        </p>
+      </fieldset>
 
-      {/* Actions */}
-      <div className="flex gap-2 pt-2">
-        <Button type="submit" variant="primary" className="flex-1">
-          {holiday ? 'Save changes' : 'Add holiday'}
+      <div className="flex gap-2 pt-4 mt-2 border-t border-line">
+        <Button type="submit" className="flex-1" disabled={saving}>
+          {saving ? 'Saving…' : holiday ? 'Save changes' : 'Add date'}
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel

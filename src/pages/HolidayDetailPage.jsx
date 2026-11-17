@@ -1,8 +1,13 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, ChevronRight, Check } from 'lucide-react'
 import { useData } from '../data/DataContext'
-import { formatDate, isUpcoming } from '../data/helpers'
+import { isUpcoming, dateParts, daysUntil, relativeDays } from '../data/helpers'
+import Avatar from '../components/ui/Avatar'
+import IconTile from '../components/ui/IconTile'
+import Progress from '../components/ui/Progress'
+import { BackLink, SectionHeader, NotFound } from '../components/ui/PageHeader'
+import { useConfirm } from '../components/ui/ConfirmDialog'
 import Tag from '../components/ui/Tag'
 import Button from '../components/ui/Button'
 import SlidePanel from '../components/ui/SlidePanel'
@@ -22,10 +27,11 @@ export default function HolidayDetailPage() {
     setDefaultRecipientsForHoliday,
   } = useData()
 
+  const confirm = useConfirm()
   const holiday = getHolidayById(id)
   const [editOpen, setEditOpen] = useState(false)
 
-  if (!holiday) return <p className="text-muted">Holiday not found.</p>
+  if (!holiday) return <NotFound title="We couldn't find that date" backTo="/holidays" backLabel="Back to dates" />
 
   const defaultRecipients = getDefaultRecipientsForHoliday(id)
   const defaultRecipientIds = new Set(defaultRecipients.map((r) => r.id))
@@ -44,47 +50,89 @@ export default function HolidayDetailPage() {
   }
 
   const handleSave = (formData) => {
-    updateHoliday(id, formData)
+    updateHoliday(id, formData, { success: 'Changes saved' })
     setEditOpen(false)
   }
 
-  const handleDelete = () => {
-    if (!window.confirm(`Remove "${holiday.name}"? Its occasions won't be deleted.`)) return
-    deleteHoliday(id)
+  const handleDelete = async () => {
+    const ok = await confirm({
+      title: `Delete ${holiday.name}?`,
+      body: "Its occasions and gifts stay on your calendar; they just won't repeat any more. This can't be undone.",
+      confirmLabel: 'Delete date',
+    })
+    if (!ok) return
+    deleteHoliday(id, { success: `${holiday.name} deleted` })
     navigate('/holidays')
+  }
+
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const rule =
+    holiday.date_logic?.type === 'fixed'
+      ? `Every year on ${MONTHS[holiday.date_logic.month - 1]} ${holiday.date_logic.day}`
+      : 'Date changes each year'
+
+  const OccasionLine = ({ o, past }) => {
+    const { total, purchased } = getGiftProgress(o.id)
+    const { month, day } = dateParts(o.date)
+    const days = daysUntil(o.date)
+    return (
+      <Link
+        to={`/occasions/${o.id}`}
+        className="group flex items-center gap-4 px-5 py-4 hover:bg-sand/40 transition-colors"
+      >
+        <div className={`w-12 text-center shrink-0 ${past ? 'opacity-60' : ''}`}>
+          <p className="text-[12px] font-semibold text-amber leading-none">{month}</p>
+          <p className="font-display font-semibold text-[24px] leading-none mt-1 text-ink tracking-numeral">{day}</p>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className={`font-display font-semibold text-[16px] ${past ? 'text-ink-soft' : 'text-ink'}`}>{o.name}</p>
+          <p className="text-[13px] text-ink-faint mt-0.5">{relativeDays(days)}</p>
+        </div>
+        {!past && total > 0 && (
+          <div className="hidden sm:block w-28">
+            <p className="text-[12px] text-ink-soft text-right mb-1.5 tabular">{purchased}/{total} ready</p>
+            <Progress value={purchased} total={total} />
+          </div>
+        )}
+        <ChevronRight size={18} strokeWidth={1.75} className="text-ink-faint group-hover:text-ink shrink-0" />
+      </Link>
+    )
   }
 
   return (
     <div>
-      <Link to="/holidays" className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground mb-6">
-        <ArrowLeft size={14} /> Holidays
-      </Link>
+      <BackLink to="/holidays">Dates</BackLink>
 
-      <div className="flex items-start justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <span className="text-4xl">{holiday.icon}</span>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{holiday.name}</h1>
-            {!holiday.is_system && <Tag className="mt-1">Custom</Tag>}
+      <header className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between mb-10">
+        <div className="flex items-center gap-4 min-w-0">
+          <IconTile icon={holiday.icon} name={holiday.name} size="lg" />
+          <div className="min-w-0">
+            <h1 className="text-[30px] md:text-[36px] leading-[1.05] font-semibold text-ink">{holiday.name}</h1>
+            <p className="text-ink-soft mt-2 flex items-center gap-2">
+              {rule}
+              {!holiday.is_system && <Tag>Your date</Tag>}
+            </p>
           </div>
         </div>
         {!holiday.is_system && (
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" onClick={() => setEditOpen(true)}>
-              <Pencil size={14} />
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Button size="sm" variant="secondary" onClick={() => setEditOpen(true)}>
+              <Pencil size={14} strokeWidth={1.75} />
               Edit
             </Button>
-            <Button variant="ghost" onClick={handleDelete}>
-              <Trash2 size={14} />
-              Delete
+            <Button size="icon" variant="danger" onClick={handleDelete} aria-label="Delete date">
+              <Trash2 size={17} strokeWidth={1.75} />
             </Button>
           </div>
         )}
-      </div>
+      </header>
 
       {/* Default recipients */}
-      <div className="mb-6 p-4 bg-surface border border-border rounded-md">
-        <p className="text-xs text-muted uppercase tracking-wider mb-3">Default recipients</p>
+      <section className="mb-12">
+        <SectionHeader title="Who you give to" />
+        <p className="text-[14px] text-ink-soft -mt-2 mb-4">
+          These people get a placeholder gift whenever you auto-create gifts for this date.
+        </p>
         {recipients.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {recipients.map((r) => {
@@ -93,76 +141,54 @@ export default function HolidayDetailPage() {
                 <button
                   key={r.id}
                   type="button"
+                  aria-pressed={selected}
                   onClick={() => toggleRecipient(r.id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm border transition-colors ${
+                  className={`inline-flex items-center gap-2 h-11 pl-1.5 pr-4 rounded-full border text-[14px] font-medium transition-colors ${
                     selected
-                      ? 'bg-accent/10 border-accent/40 text-foreground'
-                      : 'bg-background border-border text-muted hover:border-accent/30'
+                      ? 'bg-ink border-ink text-paper'
+                      : 'bg-card border-line-strong text-ink-soft hover:border-ink-faint hover:text-ink'
                   }`}
                 >
-                  <span>{r.emoji}</span>
-                  <span className={selected ? 'font-medium' : ''}>{r.name}</span>
+                  <Avatar emoji={r.emoji} name={r.name} size="sm" className="!w-8 !h-8" />
+                  {r.name}
+                  {selected && <Check size={15} strokeWidth={2.25} className="text-marigold" />}
                 </button>
               )
             })}
           </div>
         ) : (
-          <p className="text-sm text-muted">No recipients yet.</p>
+          <p className="text-[14px] text-ink-faint">Add people first, then pick who you give to on this date.</p>
         )}
-      </div>
+      </section>
 
       {upcomingOccasions.length > 0 && (
-        <section className="mb-8">
-          <h2 className="text-sm font-medium text-muted uppercase tracking-widest mb-3">Upcoming</h2>
-          <div className="flex flex-col gap-2">
-            {upcomingOccasions.map((o) => {
-              const { total, purchased } = getGiftProgress(o.id)
-              return (
-                <Link
-                  key={o.id}
-                  to={`/occasions/${o.id}`}
-                  className="flex items-center justify-between p-4 bg-surface border border-border rounded-md hover:border-accent/40 transition-colors"
-                >
-                  <div>
-                    <p className="font-bold text-foreground">{o.name}</p>
-                    <p className="text-sm text-muted mt-0.5">{formatDate(o.date)}</p>
-                  </div>
-                  <Tag variant={purchased === total && total > 0 ? 'success' : 'default'}>
-                    {purchased}/{total} ready
-                  </Tag>
-                </Link>
-              )
-            })}
+        <section className="mb-12">
+          <SectionHeader title="Upcoming" count={upcomingOccasions.length} />
+          <div className="card divide-y divide-line overflow-hidden">
+            {upcomingOccasions.map((o) => (
+              <OccasionLine key={o.id} o={o} />
+            ))}
           </div>
         </section>
       )}
 
       {pastOccasions.length > 0 && (
         <section>
-          <h2 className="text-sm font-medium text-muted uppercase tracking-widest mb-3">Past</h2>
-          <div className="flex flex-col gap-2">
+          <SectionHeader title="Past" count={pastOccasions.length} />
+          <div className="rounded-xl border border-line divide-y divide-line overflow-hidden">
             {pastOccasions.map((o) => (
-              <Link
-                key={o.id}
-                to={`/occasions/${o.id}`}
-                className="flex items-center justify-between p-4 bg-surface border border-border rounded-md hover:border-accent/40 transition-colors"
-              >
-                <div>
-                  <p className="font-bold text-foreground">{o.name}</p>
-                  <p className="text-sm text-muted mt-0.5">{formatDate(o.date)}</p>
-                </div>
-              </Link>
+              <OccasionLine key={o.id} o={o} past />
             ))}
           </div>
         </section>
       )}
 
       {allOccasions.length === 0 && (
-        <p className="text-sm text-muted">No occasions for this holiday yet.</p>
+        <p className="text-[14px] text-ink-faint">No occasions for this date yet.</p>
       )}
 
       {!holiday.is_system && (
-        <SlidePanel isOpen={editOpen} onClose={() => setEditOpen(false)} title={`Edit holiday`}>
+        <SlidePanel isOpen={editOpen} onClose={() => setEditOpen(false)} title="Edit date">
           <HolidayForm holiday={holiday} onSave={handleSave} onCancel={() => setEditOpen(false)} />
         </SlidePanel>
       )}

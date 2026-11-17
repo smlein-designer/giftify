@@ -1,45 +1,118 @@
 import { NavLink } from 'react-router-dom'
-import { CalendarDays, Users, ShoppingBag, Sparkles, LogOut } from 'lucide-react'
+import { CalendarHeart, Users, Gift, CalendarDays, LogOut } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import Logo from '../ui/Logo'
 
-const links = [
-  { to: '/occasions', label: 'Occasions', icon: CalendarDays },
-  { to: '/recipients', label: 'Recipients', icon: Users },
-  { to: '/products', label: 'Products', icon: ShoppingBag },
-  { to: '/holidays', label: 'Holidays', icon: Sparkles },
+export const links = [
+  { to: '/occasions', label: 'Occasions', icon: CalendarHeart },
+  { to: '/recipients', label: 'People', icon: Users },
+  { to: '/products', label: 'Gift library', icon: Gift },
+  { to: '/holidays', label: 'Dates', icon: CalendarDays },
 ]
 
-export default function Nav() {
+// Desktop: fixed left rail
+export function Sidebar() {
   return (
-    <header className="border-b border-border bg-background sticky top-0 z-10">
-      <div className="max-w-5xl mx-auto px-6 flex items-center justify-between h-14">
-        <span className="font-bold text-lg text-foreground tracking-tight">🎁 Giftify</span>
-        <nav className="flex items-center gap-1">
-          {links.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'text-accent bg-accent/10'
-                    : 'text-muted hover:text-foreground hover:bg-surface'
-                }`
-              }
-            >
-              <Icon size={15} />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
+    <aside className="hidden md:flex fixed inset-y-0 left-0 w-64 flex-col px-5 py-7 border-r border-line bg-paper z-20">
+      <Logo className="px-3 mb-10" />
+      <nav className="flex flex-col gap-1" aria-label="Main">
+        {links.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `group flex items-center gap-3 h-11 px-3 rounded-full text-[15px] font-medium transition-colors ${
+                isActive ? 'bg-ink text-paper' : 'text-ink-soft hover:text-ink hover:bg-sand/80'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Icon size={18} strokeWidth={1.75} className={isActive ? 'text-marigold' : ''} />
+                {label}
+              </>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+
+      <div className="mt-auto">
+        <div className="rounded-xl bg-sand/70 px-4 py-4 mb-4">
+          <p className="font-display font-semibold text-[14px] text-ink">Thoughtful, on time.</p>
+          <p className="text-[13px] text-ink-soft mt-1">Every person, every occasion, in one place.</p>
+        </div>
         <button
           onClick={() => supabase.auth.signOut()}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-muted hover:text-foreground hover:bg-surface transition-colors"
+          className="flex items-center gap-3 h-10 px-3 w-full rounded-full text-[14px] font-medium text-ink-soft hover:text-ink hover:bg-sand/80 transition-colors"
         >
-          <LogOut size={15} />
+          <LogOut size={17} strokeWidth={1.75} />
           Sign out
         </button>
       </div>
+    </aside>
+  )
+}
+
+// Mobile: slim top bar + bottom tabs
+export function MobileTopBar() {
+  return (
+    <header className="md:hidden sticky top-0 z-20 bg-paper/90 backdrop-blur border-b border-line">
+      <div className="flex items-center justify-between h-14 px-5">
+        <Logo size={26} />
+        <button
+          onClick={() => supabase.auth.signOut()}
+          aria-label="Sign out"
+          className="w-10 h-10 -mr-2 rounded-full inline-flex items-center justify-center text-ink-soft hover:text-ink hover:bg-sand"
+        >
+          <LogOut size={18} strokeWidth={1.75} />
+        </button>
+      </div>
     </header>
+  )
+}
+
+export function MobileTabBar() {
+  return (
+    <nav
+      aria-label="Main"
+      className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-card/95 backdrop-blur border-t border-line pb-safe"
+    >
+      <div className="grid grid-cols-4 h-16">
+        {links.map(({ to, label, icon: Icon }) => (
+          <NavLink
+            key={to}
+            to={to}
+            className={({ isActive }) =>
+              `flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors ${
+                isActive ? 'text-ink' : 'text-ink-faint'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <span
+                  className={`h-8 w-14 rounded-full inline-flex items-center justify-center transition-colors ${
+                    isActive ? 'bg-ink text-paper' : ''
+                  }`}
+                >
+                  <Icon size={19} strokeWidth={1.75} />
+                </span>
+                {label}
+              </>
+            )}
+          </NavLink>
+        ))}
+      </div>
+    </nav>
+  )
+}
+
+export default function Nav() {
+  return (
+    <>
+      <Sidebar />
+      <MobileTopBar />
+      <MobileTabBar />
+    </>
   )
 }

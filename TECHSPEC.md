@@ -1,6 +1,6 @@
 # Giftify — Tech Spec
 
-_Last updated: 2026-05-16_
+_Last updated: 2026-07-01_
 
 ---
 
@@ -10,7 +10,7 @@ Single-user web app. One person logs in, manages their data. All data is scoped 
 
 ## Current Build State
 
-**Phase 1 is being built with local mock data** — no Supabase connection yet. All data lives in `src/data/seed.js` with helper functions in `src/data/helpers.js`. Auth and Supabase will be wired up once the UI is solid. When ready, the data layer swaps from local imports to TanStack Query + Supabase calls.
+Live on Supabase — auth and RLS are enabled, and `src/data/DataContext.jsx` reads and writes every table directly via `@supabase/supabase-js`. `src/data/seed.js` and `src/data/helpers.js` remain for reference/testing only.
 
 ---
 
@@ -302,10 +302,11 @@ User-created holidays (birthdays, etc.) have `is_system = false`.
 ```
 VITE_SUPABASE_URL=
 VITE_SUPABASE_ANON_KEY=
-VITE_ANTHROPIC_API_KEY=
 ```
 
 Stored in `.env.local` (never committed to git).
+
+The Claude API key (`ANTHROPIC_API_KEY`) is not a client env var — it's set as a Supabase Edge Function secret and read server-side in `supabase/functions/suggest`, so it's never exposed to the browser.
 
 ---
 
