@@ -1,8 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Button from '../ui/Button'
-
-const inputClass =
-  'w-full h-10 px-3 border border-border rounded-md bg-white text-foreground text-sm placeholder:text-muted/60 focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/20'
+import Field, { focusFirstError } from '../ui/Field'
 
 function nextDateForHoliday(holiday) {
   if (!holiday || holiday.date_logic?.type !== 'fixed') return ''
@@ -15,6 +13,10 @@ function nextDateForHoliday(holiday) {
 }
 
 export default function OccasionForm({ occasion, holidays, onSave, onCancel }) {
+  const formRef = useRef(null)
+  const submitted = useRef(false)
+  const [saving, setSaving] = useState(false)
+  const [errors, setErrors] = useState({})
   const [form, setForm] = useState({
     holiday_id: occasion?.holiday_id ?? '',
     name: occasion?.name ?? '',
@@ -24,12 +26,15 @@ export default function OccasionForm({ occasion, holidays, onSave, onCancel }) {
     notes: occasion?.notes ?? '',
   })
 
-  const set = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
+  const set = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }))
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }))
+  }
 
   const handleHolidayChange = (holidayId) => {
     const h = holidays.find((h) => h.id === holidayId)
     const newDate = h ? nextDateForHoliday(h) : ''
-    const year = newDate ? new Date(newDate).getFullYear() : new Date().getFullYear()
+    const year = newDate ? Number(newDate.slice(0, 4)) : new Date().getFullYear()
     const autoName = h ? `${h.name} ${year}` : ''
     setForm((prev) => ({
       ...prev,
@@ -37,11 +42,34 @@ export default function OccasionForm({ occasion, holidays, onSave, onCancel }) {
       date: newDate || prev.date,
       name: autoName || prev.name,
     }))
+    setErrors({})
+  }
+
+  // ISO date strings compare correctly as text
+  const validate = () => {
+    const e = {}
+    if (!form.name.trim()) e.name = 'Give this occasion a name.'
+    if (!form.date) e.date = 'Pick the date of the occasion.'
+    if (form.date && form.start_shopping_date && form.start_shopping_date > form.date)
+      e.start_shopping_date = 'This should be on or before the occasion date.'
+    if (form.date && form.ship_date && form.ship_date > form.date)
+      e.ship_date = 'Ship-by should be on or before the occasion date.'
+    else if (form.start_shopping_date && form.ship_date && form.ship_date < form.start_shopping_date)
+      e.ship_date = 'Ship-by should come after you start shopping.'
+    return e
   }
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!form.name.trim() || !form.date) return
+    if (submitted.current) return
+    const errs = validate()
+    if (Object.keys(errs).length) {
+      setErrors(errs)
+      focusFirstError(formRef.current)
+      return
+    }
+    submitted.current = true
+    setSaving(true)
     onSave({
       holiday_id: form.holiday_id || null,
       name: form.name.trim(),
@@ -53,94 +81,73 @@ export default function OccasionForm({ occasion, holidays, onSave, onCancel }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      {/* Holiday (optional) */}
-      <div>
-        <label className="block text-xs text-muted mb-1.5">Holiday (optional)</label>
-        <select
-          value={form.holiday_id}
-          onChange={(e) => handleHolidayChange(e.target.value)}
-          className={inputClass}
-        >
-          <option value="">One-off / standalone</option>
+    <form ref={formRef} onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+      <Field label="Repeating date" hint="Pick one to fill in the name and date for you.">
+        <select value={form.holiday_id} onChange={(e) => handleHolidayChange(e.target.value)} className="field">
+          <option value="">None (one-time occasion)</option>
           {holidays.map((h) => (
             <option key={h.id} value={h.id}>
-              {h.icon} {h.name}
+              {h.name}
             </option>
           ))}
         </select>
-      </div>
+      </Field>
 
-      {/* Name */}
-      <div>
-        <label className="block text-xs text-muted mb-1.5">
-          Name <span className="text-accent">*</span>
-        </label>
+      <Field label="Name" required error={errors.name}>
         <input
           type="text"
           value={form.name}
           onChange={(e) => set('name', e.target.value)}
           placeholder="e.g. Christmas 2026"
-          className={inputClass}
-          required
+          className="field"
+          maxLength={80}
+          autoComplete="off"
         />
-      </div>
+      </Field>
 
-      {/* Date */}
-      <div>
-        <label className="block text-xs text-muted mb-1.5">
-          Date <span className="text-accent">*</span>
-        </label>
-        <input
-          type="date"
-          value={form.date}
-          onChange={(e) => set('date', e.target.value)}
-          className={inputClass}
-          required
-        />
-      </div>
+      <Field label="Date" required error={errors.date}>
+        <input type="date" value={form.date} onChange={(e) => set('date', e.target.value)} className="field" />
+      </Field>
 
-      {/* Planning dates */}
-      <div>
-        <p className="text-xs text-muted mb-2">Planning dates (optional)</p>
-        <div className="flex flex-col gap-2">
-          <div>
-            <label className="block text-xs text-muted mb-1">Start shopping</label>
+      <fieldset className="flex flex-col gap-3">
+        <legend className="font-display font-semibold text-[15px] text-ink mb-1">
+          Planning dates <span className="font-sans font-normal text-[13px] text-ink-faint">(optional)</span>
+        </legend>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Start shopping" error={errors.start_shopping_date}>
             <input
               type="date"
               value={form.start_shopping_date}
+              max={form.date || undefined}
               onChange={(e) => set('start_shopping_date', e.target.value)}
-              className={inputClass}
+              className="field"
             />
-          </div>
-          <div>
-            <label className="block text-xs text-muted mb-1">Ship by</label>
+          </Field>
+          <Field label="Ship by" error={errors.ship_date}>
             <input
               type="date"
               value={form.ship_date}
+              max={form.date || undefined}
               onChange={(e) => set('ship_date', e.target.value)}
-              className={inputClass}
+              className="field"
             />
-          </div>
+          </Field>
         </div>
-      </div>
+      </fieldset>
 
-      {/* Notes */}
-      <div>
-        <label className="block text-xs text-muted mb-1.5">Notes</label>
+      <Field label="Notes">
         <textarea
           value={form.notes}
           onChange={(e) => set('notes', e.target.value)}
           placeholder="Any reminders or context for this occasion"
           rows={3}
-          className="w-full px-3 py-2.5 border border-border rounded-md bg-white text-foreground text-sm placeholder:text-muted/60 focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/20 resize-none"
+          className="field-area"
         />
-      </div>
+      </Field>
 
-      {/* Actions */}
-      <div className="flex gap-2 pt-2">
-        <Button type="submit" variant="primary" className="flex-1">
-          {occasion ? 'Save changes' : 'Add occasion'}
+      <div className="flex gap-2 pt-4 mt-2 border-t border-line">
+        <Button type="submit" className="flex-1" disabled={saving}>
+          {saving ? 'Saving…' : occasion ? 'Save changes' : 'Add occasion'}
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel

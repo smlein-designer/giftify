@@ -2,34 +2,43 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight, Plus } from 'lucide-react'
 import { useData } from '../data/DataContext'
-import { formatDate, isUpcoming } from '../data/helpers'
-import Tag from '../components/ui/Tag'
+import { daysUntil, formatShort, relativeDays } from '../data/helpers'
+import IconTile from '../components/ui/IconTile'
+import { AvatarStack } from '../components/ui/Avatar'
+import PageHeader, { SectionHeader } from '../components/ui/PageHeader'
 import Button from '../components/ui/Button'
 import SlidePanel from '../components/ui/SlidePanel'
 import HolidayForm from '../components/holidays/HolidayForm'
 
 function HolidayRow({ holiday, defaultRecipients, next }) {
+  const days = next ? daysUntil(next.date) : null
   return (
     <Link
       to={`/holidays/${holiday.id}`}
-      className="flex items-center justify-between p-4 bg-surface border border-border rounded-md hover:border-accent/40 transition-colors group"
+      className="group flex items-center gap-4 px-4 sm:px-5 py-4 hover:bg-sand/40 transition-colors"
     >
-      <div className="flex items-center gap-3">
-        <span className="text-2xl">{holiday.icon}</span>
-        <div>
-          <p className="font-bold text-foreground text-[16px]">{holiday.name}</p>
-          <p className="text-sm text-muted mt-0.5">
-            {defaultRecipients.length > 0
-              ? defaultRecipients.map((r) => r.name).join(', ')
-              : 'No default recipients'}
-          </p>
-          {next && <p className="text-xs text-muted mt-1">Next: {formatDate(next.date)}</p>}
-        </div>
+      <IconTile icon={holiday.icon} name={holiday.name} />
+      <div className="min-w-0 flex-1">
+        <p className="font-display font-semibold text-[16px] text-ink leading-snug truncate">{holiday.name}</p>
+        <p className="text-[13px] text-ink-soft mt-1">
+          {next ? (
+            <>
+              {formatShort(next.date)}
+              <span className="text-ink-faint"> · {relativeDays(days).toLowerCase()}</span>
+            </>
+          ) : (
+            <span className="text-ink-faint">No upcoming date</span>
+          )}
+        </p>
       </div>
-      <div className="flex items-center gap-3 shrink-0">
-        {!holiday.is_system && <Tag>Custom</Tag>}
-        <ChevronRight size={16} className="text-border group-hover:text-muted transition-colors" />
+      <div className="hidden sm:flex items-center gap-2 shrink-0">
+        {defaultRecipients.length > 0 ? (
+          <AvatarStack people={defaultRecipients} />
+        ) : (
+          <span className="text-[13px] text-ink-faint">No one by default</span>
+        )}
       </div>
+      <ChevronRight size={18} strokeWidth={1.75} className="text-ink-faint group-hover:text-ink transition-colors shrink-0" />
     </Link>
   )
 }
@@ -49,7 +58,10 @@ export default function HolidaysPage() {
   const custom = holidays.filter((h) => !h.is_system)
 
   const handleSave = (formData) => {
-    const newHoliday = addHoliday(formData)
+    const currentYearForMsg = new Date().getFullYear()
+    const newHoliday = addHoliday(formData, {
+      success: `${formData.name} added, with occasions through ${currentYearForMsg + 2}`,
+    })
     // auto-create occasions for this year and next 2 years
     const { month, day } = newHoliday.date_logic
     const currentYear = new Date().getFullYear()
@@ -70,47 +82,46 @@ export default function HolidaysPage() {
     setPanelOpen(false)
   }
 
+  const renderList = (list) => (
+    <div className="card divide-y divide-line overflow-hidden">
+      {list.map((h) => (
+        <HolidayRow
+          key={h.id}
+          holiday={h}
+          defaultRecipients={getDefaultRecipientsForHoliday(h.id)}
+          next={getNextOccasionForHoliday(h.id)}
+        />
+      ))}
+    </div>
+  )
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Holidays</h1>
-        <Button variant="primary" onClick={() => setPanelOpen(true)}>
-          <Plus size={16} />
-          Add holiday
-        </Button>
-      </div>
+      <PageHeader
+        eyebrow="Dates"
+        title="The dates that matter"
+        description="Repeating dates become occasions automatically, three years ahead, with the right people already attached."
+        actions={
+          <Button onClick={() => setPanelOpen(true)}>
+            <Plus size={17} strokeWidth={2} />
+            Add a date
+          </Button>
+        }
+      />
 
       {custom.length > 0 && (
-        <section className="mb-8">
-          <h2 className="text-sm font-medium text-muted uppercase tracking-widest mb-3">Custom</h2>
-          <div className="flex flex-col gap-2">
-            {custom.map((h) => (
-              <HolidayRow
-                key={h.id}
-                holiday={h}
-                defaultRecipients={getDefaultRecipientsForHoliday(h.id)}
-                next={getNextOccasionForHoliday(h.id)}
-              />
-            ))}
-          </div>
+        <section className="mb-12">
+          <SectionHeader title="Your dates" count={custom.length} />
+          {renderList(custom)}
         </section>
       )}
 
       <section>
-        <h2 className="text-sm font-medium text-muted uppercase tracking-widest mb-3">System</h2>
-        <div className="flex flex-col gap-2">
-          {system.map((h) => (
-            <HolidayRow
-              key={h.id}
-              holiday={h}
-              defaultRecipients={getDefaultRecipientsForHoliday(h.id)}
-              next={getNextOccasionForHoliday(h.id)}
-            />
-          ))}
-        </div>
+        <SectionHeader title="Holidays" count={system.length} />
+        {renderList(system)}
       </section>
 
-      <SlidePanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} title="New holiday">
+      <SlidePanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} title="New date">
         <HolidayForm onSave={handleSave} onCancel={() => setPanelOpen(false)} />
       </SlidePanel>
     </div>

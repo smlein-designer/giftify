@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { DataProvider } from './data/DataContext'
+import FullPageLoader from './components/ui/Loader'
 import AppLayout from './components/layout/AppLayout'
 import LoginPage from './pages/LoginPage'
 import OccasionsPage from './pages/OccasionsPage'
@@ -12,6 +13,7 @@ import ProductsPage from './pages/ProductsPage'
 import ProductDetailPage from './pages/ProductDetailPage'
 import HolidaysPage from './pages/HolidaysPage'
 import HolidayDetailPage from './pages/HolidayDetailPage'
+import { NotFound } from './components/ui/PageHeader'
 
 export default function App() {
   const [session, setSession] = useState(undefined)
@@ -30,9 +32,7 @@ export default function App() {
 
   if (session === undefined) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-      </div>
+      <FullPageLoader />
     )
   }
 
@@ -54,6 +54,7 @@ export default function App() {
             <Route path="/products/:id" element={<ProductDetailPage />} />
             <Route path="/holidays" element={<HolidaysPage />} />
             <Route path="/holidays/:id" element={<HolidayDetailPage />} />
+            <Route path="*" element={<NotFound title="This page doesn't exist" />} />
           </Route>
         </Routes>
       </BrowserRouter>

@@ -1,7 +1,12 @@
 import { useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ExternalLink, Package, Pencil, Trash2 } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { ArrowUpRight, Pencil, Trash2 } from 'lucide-react'
 import { useData } from '../data/DataContext'
+import Avatar from '../components/ui/Avatar'
+import { formatMoney } from '../data/helpers'
+import { BackLink, SectionHeader, NotFound } from '../components/ui/PageHeader'
+import { useConfirm } from '../components/ui/ConfirmDialog'
+import { ProductImage } from './ProductsPage'
 import Tag from '../components/ui/Tag'
 import Button from '../components/ui/Button'
 import SlidePanel from '../components/ui/SlidePanel'
@@ -10,12 +15,13 @@ import ProductForm from '../components/products/ProductForm'
 export default function ProductDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { getProductById, getTimesGiven, giftProducts, getGiftById, getRecipientsForGift, updateProduct, deleteProduct } = useData()
+  const { getProductById, getTimesGiven, giftProducts, getGiftById, getRecipientsForGift, getOccasionById, updateProduct, deleteProduct } = useData()
 
+  const confirm = useConfirm()
   const product = getProductById(id)
   const [editOpen, setEditOpen] = useState(false)
 
-  if (!product) return <p className="text-muted">Product not found.</p>
+  if (!product) return <NotFound title="We couldn't find that gift idea" backTo="/products" backLabel="Back to gift library" />
 
   const timesGiven = getTimesGiven(id)
   const givenIn = giftProducts
@@ -24,88 +30,87 @@ export default function ProductDetailPage() {
     .filter(Boolean)
 
   const handleSave = (formData) => {
-    updateProduct(id, formData)
+    updateProduct(id, formData, { success: 'Changes saved' })
     setEditOpen(false)
   }
 
-  const handleDelete = () => {
-    if (!window.confirm(`Remove "${product.name}" from your library? This can't be undone.`)) return
-    deleteProduct(id)
+  const handleDelete = async () => {
+    const n = givenIn.length
+    const ok = await confirm({
+      title: `Delete ${product.name}?`,
+      body:
+        (n > 0 ? `It will be removed from ${n} gift${n === 1 ? '' : 's'}; the gifts themselves stay. ` : '') +
+        "This can't be undone.",
+      confirmLabel: 'Delete idea',
+    })
+    if (!ok) return
+    deleteProduct(id, { success: `${product.name} deleted` })
     navigate('/products')
   }
 
   return (
     <div>
-      <Link to="/products" className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground mb-6">
-        <ArrowLeft size={14} /> Gift Library
-      </Link>
+      <BackLink to="/products">Gift library</BackLink>
 
-      <div className="bg-surface border border-border rounded-md overflow-hidden mb-6">
-        <div className="bg-border/40 h-48 flex items-center justify-center overflow-hidden">
-          {product.photo_url ? (
-            <img src={product.photo_url} alt={product.name} className="w-full h-full object-cover" />
-          ) : (
-            <Package size={40} className="text-border" />
-          )}
+      <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-10 mb-12">
+        <div className="aspect-square rounded-2xl overflow-hidden bg-sand">
+          <ProductImage product={product} large />
         </div>
-        <div className="p-5">
-          <div className="flex items-start justify-between gap-4">
-            <h1 className="text-2xl font-bold text-foreground">{product.name}</h1>
-            <div className="flex items-center gap-2 shrink-0">
-              {product.price != null && (
-                <span className="text-lg font-bold text-foreground">${product.price}</span>
-              )}
+
+        <div className="flex flex-col">
+          <div className="flex items-start justify-between gap-3">
+            {timesGiven > 0 ? <Tag variant="success">Given {timesGiven}×</Tag> : <Tag>Not given yet</Tag>}
+            <div className="flex items-center gap-1 -mt-1 -mr-1">
+              <Button size="icon" variant="ghost" onClick={() => setEditOpen(true)} aria-label="Edit gift idea">
+                <Pencil size={16} strokeWidth={1.75} />
+              </Button>
+              <Button size="icon" variant="danger" onClick={handleDelete} aria-label="Delete gift idea">
+                <Trash2 size={17} strokeWidth={1.75} />
+              </Button>
             </div>
           </div>
-          {product.description && (
-            <p className="text-sm text-muted mt-2">{product.description}</p>
+          <h1 className="text-[30px] md:text-[36px] leading-[1.05] font-semibold text-ink mt-3">{product.name}</h1>
+          {product.price != null && (
+            <p className="font-display font-semibold text-[26px] text-ink mt-3 tracking-numeral">{formatMoney(product.price)}</p>
           )}
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-2">
-              {timesGiven > 0 && <Tag variant="success">Given {timesGiven}×</Tag>}
-              {product.link && (
-                <a
-                  href={product.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-accent hover:text-accent-hover"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <ExternalLink size={13} /> Buy
-                </a>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="secondary" onClick={() => setEditOpen(true)}>
-                <Pencil size={14} />
-                Edit
-              </Button>
-              <Button variant="ghost" onClick={handleDelete}>
-                <Trash2 size={14} />
-                Delete
-              </Button>
-            </div>
-          </div>
+          {product.description && <p className="text-[16px] leading-relaxed text-ink-soft mt-4">{product.description}</p>}
+
+          {product.link && (
+            <a
+              href={product.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-8 inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-ink text-paper font-medium hover:bg-ink-hover transition-colors self-start"
+            >
+              View where to buy
+              <ArrowUpRight size={17} strokeWidth={1.75} />
+            </a>
+          )}
         </div>
       </div>
 
       {givenIn.length > 0 && (
         <section>
-          <h2 className="text-sm font-medium text-muted uppercase tracking-widest mb-3">Given as</h2>
-          <div className="flex flex-col gap-2">
+          <SectionHeader title="Gifted in" count={givenIn.length} />
+          <div className="card divide-y divide-line overflow-hidden">
             {givenIn.map((gift) => {
               const recipients = getRecipientsForGift(gift.id)
+              const occasion = getOccasionById(gift.occasion_id)
+              const lead = recipients[0]
               return (
-                <div key={gift.id} className="p-4 bg-surface border border-border rounded-md">
-                  <p className="font-bold text-foreground">{gift.name}</p>
-                  {recipients.length > 0 && (
-                    <p className="text-sm text-muted mt-0.5">
-                      {recipients.map((r) => `${r.emoji} ${r.name}`).join(', ')}
+                <div key={gift.id} className="flex items-start gap-4 px-5 py-4">
+                  {lead && <Avatar emoji={lead.emoji} name={lead.name} size="sm" />}
+                  <div className="min-w-0">
+                    <p className="font-display font-semibold text-[15px] text-ink">
+                      {recipients.map((r) => r.name).join(', ') || gift.name}
                     </p>
-                  )}
-                  {gift.reception_notes && (
-                    <p className="text-xs text-success mt-2">✓ {gift.reception_notes}</p>
-                  )}
+                    {occasion && <p className="text-[13px] text-ink-soft mt-0.5">{occasion.name}</p>}
+                    {gift.reception_notes && (
+                      <p className="mt-2 inline-block rounded-md bg-sage-tint px-3 py-1.5 text-[14px] text-sage">
+                        “{gift.reception_notes}”
+                      </p>
+                    )}
+                  </div>
                 </div>
               )
             })}
@@ -113,7 +118,7 @@ export default function ProductDetailPage() {
         </section>
       )}
 
-      <SlidePanel isOpen={editOpen} onClose={() => setEditOpen(false)} title={`Edit product`}>
+      <SlidePanel isOpen={editOpen} onClose={() => setEditOpen(false)} title="Edit gift idea">
         <ProductForm product={product} onSave={handleSave} onCancel={() => setEditOpen(false)} />
       </SlidePanel>
     </div>

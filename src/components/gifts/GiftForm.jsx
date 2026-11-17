@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import Button from '../ui/Button'
+import Avatar from '../ui/Avatar'
+import Field, { focusFirstError } from '../ui/Field'
+import { formatMoney } from '../../data/helpers'
 
 const PHYSICAL_STATUSES = ['idea', 'purchased', 'wrapped', 'shipped', 'received']
 const EXPERIENCE_STATUSES = ['planned', 'confirmed', 'executed']
 
-const inputClass =
-  'w-full h-10 px-3 border border-border rounded-md bg-white text-foreground text-sm placeholder:text-muted/60 focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/20'
 
 export default function GiftForm({
   gift,
@@ -17,6 +18,10 @@ export default function GiftForm({
   onSave,
   onCancel,
 }) {
+  const formRef = useRef(null)
+  const submitted = useRef(false)
+  const [saving, setSaving] = useState(false)
+  const [errors, setErrors] = useState({})
   const [form, setForm] = useState({
     name: gift?.name ?? '',
     type: gift?.type ?? null,
@@ -28,7 +33,10 @@ export default function GiftForm({
   const [recipientIds, setRecipientIds] = useState(new Set(initialRecipientIds))
   const [productIds, setProductIds] = useState(new Set(initialProductIds))
 
-  const set = (field, value) => setForm((prev) => ({ ...prev, [field]: value }))
+  const set = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }))
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }))
+  }
 
   const toggleRecipient = (id) =>
     setRecipientIds((prev) => {
@@ -55,7 +63,14 @@ export default function GiftForm({
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!form.name.trim()) return
+    if (submitted.current) return
+    if (!form.name.trim()) {
+      setErrors({ name: 'Give this gift a name, like “Scarf for Mom”.' })
+      focusFirstError(formRef.current)
+      return
+    }
+    submitted.current = true
+    setSaving(true)
     onSave(
       {
         occasion_id: occasionId,
@@ -76,74 +91,58 @@ export default function GiftForm({
   const statusField = form.type === 'physical' ? 'physical_status' : 'experience_status'
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      {/* Name */}
-      <div>
-        <label className="block text-xs text-muted mb-1.5">
-          Name <span className="text-accent">*</span>
-        </label>
+    <form ref={formRef} onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
+      <Field label="Name" required error={errors.name}>
         <input
           type="text"
           value={form.name}
           onChange={(e) => set('name', e.target.value)}
-          placeholder="e.g. Luke — Christmas 2026"
-          className={inputClass}
-          required
+          placeholder="e.g. Linen apron for Mom"
+          className="field"
+          maxLength={80}
+          autoComplete="off"
         />
-      </div>
+      </Field>
 
-      {/* Type */}
-      <div>
-        <label className="block text-xs text-muted mb-1.5">Type</label>
-        <div className="flex gap-2">
+      <fieldset>
+        <legend className="field-label">Type</legend>
+        <div className="flex gap-2" role="radiogroup" aria-label="Gift type">
           {['physical', 'experience'].map((t) => (
             <button
               key={t}
               type="button"
+              role="radio"
+              aria-checked={form.type === t}
               onClick={() => setType(t)}
-              className={`flex-1 h-10 rounded-md border text-sm font-medium transition-colors capitalize ${
-                form.type === t
-                  ? 'bg-accent/10 border-accent/40 text-foreground'
-                  : 'bg-white border-border text-muted hover:border-accent/30'
-              }`}
+              className={`chip flex-1 justify-center font-medium capitalize ${form.type === t ? 'chip-on' : ''}`}
             >
               {t}
             </button>
           ))}
           {form.type && (
-            <button
-              type="button"
-              onClick={() => setType(null)}
-              className="px-3 h-10 rounded-md border border-border text-sm text-muted hover:border-accent/30 transition-colors"
-            >
+            <button type="button" onClick={() => setType(null)} className="chip">
               Clear
             </button>
           )}
         </div>
-      </div>
+        {!form.type && <p className="text-[13px] text-ink-faint mt-1.5">Choose a type to track its progress.</p>}
+      </fieldset>
 
-      {/* Status */}
       {form.type && (
-        <div>
-          <label className="block text-xs text-muted mb-1.5">Status</label>
-          <select
-            value={currentStatus}
-            onChange={(e) => set(statusField, e.target.value)}
-            className={inputClass}
-          >
-            {statuses.map((s) => (
-              <option key={s} value={s}>
-                {s.charAt(0).toUpperCase() + s.slice(1)}
+        <Field label="Status">
+          <select value={currentStatus} onChange={(e) => set(statusField, e.target.value)} className="field">
+            {statuses.map((st) => (
+              <option key={st} value={st}>
+                {st.charAt(0).toUpperCase() + st.slice(1)}
               </option>
             ))}
           </select>
-        </div>
+        </Field>
       )}
 
-      {/* Recipients */}
-      {recipients.length > 0 && (
-        <div>
-          <label className="block text-xs text-muted mb-2">Recipients</label>
+      {recipients.length > 0 ? (
+        <fieldset>
+          <legend className="field-label">For</legend>
           <div className="flex flex-wrap gap-2">
             {recipients.map((r) => {
               const selected = recipientIds.has(r.id)
@@ -151,79 +150,72 @@ export default function GiftForm({
                 <button
                   key={r.id}
                   type="button"
+                  aria-pressed={selected}
                   onClick={() => toggleRecipient(r.id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm border transition-colors ${
-                    selected
-                      ? 'bg-accent/10 border-accent/40 text-foreground'
-                      : 'bg-white border-border text-muted hover:border-accent/30'
-                  }`}
+                  className={`chip ${selected ? 'chip-on' : ''}`}
                 >
-                  <span>{r.emoji}</span>
-                  <span className={selected ? 'font-medium' : ''}>{r.name}</span>
+                  <Avatar emoji={r.emoji} name={r.name} size="xs" className="-ml-2" />
+                  <span className="font-medium max-w-[10rem] truncate">{r.name}</span>
                 </button>
               )
             })}
           </div>
-        </div>
+        </fieldset>
+      ) : (
+        <p className="text-[13px] text-ink-faint">Add people on the People page to assign this gift to someone.</p>
       )}
 
-      {/* Products */}
       {products.length > 0 && (
-        <div>
-          <label className="block text-xs text-muted mb-2">Products from library</label>
-          <div className="flex flex-col gap-1.5">
+        <fieldset>
+          <legend className="field-label">From your gift library</legend>
+          <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto -mx-1 px-1 py-1">
             {products.map((p) => {
               const selected = productIds.has(p.id)
               return (
                 <button
                   key={p.id}
                   type="button"
+                  aria-pressed={selected}
                   onClick={() => toggleProduct(p.id)}
-                  className={`flex items-center justify-between px-3 py-2 rounded-md text-sm border transition-colors text-left ${
+                  className={`flex items-center justify-between gap-3 min-h-12 px-4 py-2 rounded-md text-[14px] border transition-colors text-left ${
                     selected
-                      ? 'bg-accent/10 border-accent/40 text-foreground'
-                      : 'bg-white border-border text-muted hover:border-accent/30'
+                      ? 'bg-ink border-ink text-paper'
+                      : 'bg-card border-line-strong text-ink hover:border-ink-faint'
                   }`}
                 >
-                  <span className={selected ? 'font-medium' : ''}>{p.name}</span>
+                  <span className="font-medium">{p.name}</span>
                   {p.price != null && (
-                    <span className="text-xs text-muted shrink-0 ml-2">${p.price}</span>
+                    <span className={`text-[13px] shrink-0 tabular ${selected ? 'text-paper/70' : 'text-ink-soft'}`}>{formatMoney(p.price)}</span>
                   )}
                 </button>
               )
             })}
           </div>
-        </div>
+        </fieldset>
       )}
 
-      {/* Notes */}
-      <div>
-        <label className="block text-xs text-muted mb-1.5">Notes</label>
+      <Field label="Notes">
         <textarea
           value={form.notes}
           onChange={(e) => set('notes', e.target.value)}
           placeholder="Wrapping instructions, reminders, etc."
           rows={2}
-          className="w-full px-3 py-2.5 border border-border rounded-md bg-white text-foreground text-sm placeholder:text-muted/60 focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/20 resize-none"
+          className="field-area"
         />
-      </div>
+      </Field>
 
-      {/* Reception notes */}
-      <div>
-        <label className="block text-xs text-muted mb-1.5">How did they like it?</label>
+      <Field label="How did they like it?" hint="Fill this in after it's given. It helps future suggestions.">
         <textarea
           value={form.reception_notes}
           onChange={(e) => set('reception_notes', e.target.value)}
-          placeholder="Fill in after the gift is given — helps with future suggestions"
           rows={2}
-          className="w-full px-3 py-2.5 border border-border rounded-md bg-white text-foreground text-sm placeholder:text-muted/60 focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/20 resize-none"
+          className="field-area"
         />
-      </div>
+      </Field>
 
-      {/* Actions */}
-      <div className="flex gap-2 pt-2">
-        <Button type="submit" variant="primary" className="flex-1">
-          {gift ? 'Save changes' : 'Add gift'}
+      <div className="flex gap-2 pt-4 mt-2 border-t border-line">
+        <Button type="submit" className="flex-1" disabled={saving}>
+          {saving ? 'Saving…' : gift ? 'Save changes' : 'Add gift'}
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel}>
           Cancel

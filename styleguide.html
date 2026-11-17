@@ -1,660 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Giftify — Styleguide</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <style>
-      :root {
-        --color-bg: #fafafa;
-        --color-surface: #f0f0eb;
-        --color-border: #ddd8d2;
-        --color-text: #222220;
-        --color-muted: #6b6a66;
-        --color-accent: #d4847a;
-        --color-accent-hover: #be6d63;
-        --color-success: #6a9e7f;
-        --color-error: #c0544a;
-        --color-white: #ffffff;
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Giftify styleguide</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{--paper:#F4F5F9;--card:#FFFFFF;--sand:#E8EAF2;--line:#DDE0EA;--line-strong:#C3C8D8;--ink:#151C3B;--ink-soft:#474F6D;--ink-faint:#5A6280;--amber:#9A5200;--amber-tint:#FCEFD2;--sage:#2C6E55;--sage-tint:#DBEEE5;--focus:#E1E6F8;--marigold:#F2B33D}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.55 'Hanken Grotesk',system-ui,sans-serif}
+  h1,h2,h3,.d{font-family:Syne,system-ui,sans-serif;font-weight:600;letter-spacing:-.01em;margin:0}
+  .wrap{max-width:960px;margin:0 auto;padding:56px 32px 96px}
+  .eyebrow{color:var(--amber);font-size:13px;font-weight:500}
+  section{margin-top:56px}
+  h2{font-size:22px;margin-bottom:16px}
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .sw{border-radius:16px;border:1px solid var(--line);overflow:hidden;background:var(--card)}
+  .sw div{height:72px}
+  .sw p{margin:0;padding:10px 12px;font-size:13px}
+  .sw b{display:block;font-weight:600}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .btn{height:44px;padding:0 20px;border-radius:999px;font:500 14px 'Hanken Grotesk';display:inline-flex;align-items:center;border:0;cursor:pointer}
+  .p{background:var(--ink);color:var(--paper)} .s{background:var(--card);border:1px solid var(--line-strong);color:var(--ink)} .g{background:transparent;color:var(--ink-soft)}
+  .tag{height:24px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:500;display:inline-flex;align-items:center}
+  .field{height:44px;width:100%;border:1px solid var(--line-strong);border-radius:12px;background:var(--card);padding:0 14px;font:15px 'Hanken Grotesk';color:var(--ink)}
+  .field:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 4px var(--focus)}
+  .hero{background:var(--ink);color:var(--paper);border-radius:24px;padding:28px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px}
+  .bar{height:6px;border-radius:9px;background:rgba(247,243,236,.2);overflow:hidden}.bar i{display:block;height:100%;width:60%;background:var(--paper);border-radius:9px}
+  .av{width:48px;height:48px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:22px}
+  table{width:100%;border-collapse:collapse;font-size:14px}td{padding:10px 0;border-bottom:1px solid var(--line)}td:first-child{color:var(--ink-soft);width:180px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Giftify design system</p>
+  <h1 style="font-size:44px;line-height:1.05;margin-top:8px">Midnight &amp; Marigold</h1>
+  <p style="color:var(--ink-soft);max-width:560px;margin-top:12px">Cool white paper, midnight navy ink, marigold on dark and amber for time pressure. Calm, confident and year-round. Full rules live in STYLEGUIDE.md; tokens live in tailwind.config.js.</p>
 
-        --radius-sm: 4px;
-        --radius-md: 6px;
-        --radius-lg: 10px;
-        --radius-full: 9999px;
+  <section>
+    <h2>Color</h2>
+    <div class="grid">
+      <div class="sw"><div style="background:#F4F5F9"></div><p><b>paper</b>#F4F5F9</p></div>
+      <div class="sw"><div style="background:#FFFFFF"></div><p><b>card</b>#FFFFFF</p></div>
+      <div class="sw"><div style="background:#E8EAF2"></div><p><b>sand</b>#E8EAF2</p></div>
+      <div class="sw"><div style="background:#DDE0EA"></div><p><b>line</b>#DDE0EA</p></div>
+      <div class="sw"><div style="background:#151C3B"></div><p><b>ink (midnight)</b>#151C3B</p></div>
+      <div class="sw"><div style="background:#474F6D"></div><p><b>ink-soft</b>#474F6D</p></div>
+      <div class="sw"><div style="background:#5A6280"></div><p><b>ink-faint</b>#5A6280</p></div>
+      <div class="sw"><div style="background:#9A5200"></div><p><b>amber</b>#9A5200</p></div>
+      <div class="sw"><div style="background:#FCEFD2"></div><p><b>amber-tint</b>#FCEFD2</p></div>
+      <div class="sw"><div style="background:#2C6E55"></div><p><b>sage (done)</b>#2C6E55</p></div>
+      <div class="sw"><div style="background:#DBEEE5"></div><p><b>sage-tint</b>#DBEEE5</p></div>
+      <div class="sw"><div style="background:#F2B33D"></div><p><b>marigold (on ink)</b>#F2B33D</p></div>
+    </div>
+  </section>
 
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.07);
-        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.09);
+  <section>
+    <h2>Type</h2>
+    <div class="card">
+      <table>
+        <tr><td>Page title · Syne 600</td><td><span class="d" style="font-size:40px;line-height:1.05">Occasions</span></td></tr>
+        <tr><td>Countdown · Syne 700</td><td><span class="d" style="font-size:72px;font-weight:700;line-height:.9">38</span></td></tr>
+        <tr><td>Section · Syne 600 17px</td><td><span class="d" style="font-size:17px">Coming up</span></td></tr>
+        <tr><td>Body · Hanken 15px</td><td>Gardening, cooking shows, anything cozy. Quality over quantity.</td></tr>
+        <tr><td>Meta · Hanken 13px</td><td style="font-size:13px;color:var(--ink-soft)">Christmas, Dec 25 · in 38 days</td></tr>
+      </table>
+    </div>
+  </section>
 
-        --font: 'DM Sans', sans-serif;
-      }
+  <section>
+    <h2>Buttons and tags</h2>
+    <div class="row">
+      <button class="btn p">Add occasion</button>
+      <button class="btn s">Edit</button>
+      <button class="btn g">Cancel</button>
+      <span class="tag" style="background:var(--sand);color:var(--ink-soft)">Family</span>
+      <span class="tag" style="background:var(--amber-tint);color:#7A4100">Time to shop</span>
+      <span class="tag" style="background:var(--sage-tint);color:var(--sage)">Given 2×</span>
+    </div>
+  </section>
 
-      * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-      }
+  <section>
+    <h2>Inputs</h2>
+    <div class="card" style="max-width:420px">
+      <label style="display:block;font-size:13px;font-weight:500;color:var(--ink-soft);margin-bottom:6px">Name</label>
+      <input class="field" placeholder="e.g. Mom, Lucky" />
+    </div>
+  </section>
 
-      body {
-        font-family: var(--font);
-        background: var(--color-bg);
-        color: var(--color-text);
-        padding: 48px 32px;
-        max-width: 900px;
-        margin: 0 auto;
-      }
-
-      /* ── Layout ── */
-      .page-title {
-        font-size: 30px;
-        font-weight: 700;
-        margin-bottom: 4px;
-      }
-
-      .page-subtitle {
-        font-size: 14px;
-        color: var(--color-muted);
-        margin-bottom: 48px;
-      }
-
-      section {
-        margin-bottom: 48px;
-      }
-
-      .section-label {
-        font-size: 12px;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--color-muted);
-        margin-bottom: 16px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid var(--color-border);
-      }
-
-      .row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        align-items: flex-start;
-      }
-
-      .col {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      /* ── Colors ── */
-      .swatch-group {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-      }
-
-      .swatch {
-        width: 100px;
-      }
-
-      .swatch-chip {
-        width: 100px;
-        height: 64px;
-        border-radius: var(--radius-md);
-        border: 1px solid rgba(0, 0, 0, 0.07);
-        margin-bottom: 6px;
-      }
-
-      .swatch-name {
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--color-text);
-      }
-
-      .swatch-hex {
-        font-size: 11px;
-        color: var(--color-muted);
-      }
-
-      /* ── Typography ── */
-      .type-row {
-        display: flex;
-        align-items: baseline;
-        gap: 24px;
-        padding: 12px 0;
-        border-bottom: 1px solid var(--color-border);
-      }
-
-      .type-row:last-child {
-        border-bottom: none;
-      }
-
-      .type-meta {
-        width: 120px;
-        flex-shrink: 0;
-        font-size: 12px;
-        color: var(--color-muted);
-      }
-
-      /* ── Buttons ── */
-      button {
-        font-family: var(--font);
-        font-size: 14px;
-        font-weight: 500;
-        padding: 12px 20px;
-        border-radius: var(--radius-md);
-        border: none;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        transition: background 0.15s, color 0.15s;
-      }
-
-      .btn-primary {
-        background: var(--color-accent);
-        color: white;
-      }
-
-      .btn-primary:hover {
-        background: var(--color-accent-hover);
-      }
-
-      .btn-secondary {
-        background: var(--color-surface);
-        color: var(--color-text);
-        border: 1px solid var(--color-border);
-      }
-
-      .btn-secondary:hover {
-        background: var(--color-border);
-      }
-
-      .btn-ghost {
-        background: transparent;
-        color: var(--color-muted);
-      }
-
-      .btn-ghost:hover {
-        color: var(--color-text);
-        background: var(--color-surface);
-      }
-
-      /* ── Inputs ── */
-      .input-group {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        width: 280px;
-      }
-
-      label {
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--color-text);
-      }
-
-      input,
-      textarea {
-        font-family: var(--font);
-        font-size: 14px;
-        background: var(--color-white);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-sm);
-        padding: 10px 14px;
-        color: var(--color-text);
-        outline: none;
-        width: 100%;
-        transition: border-color 0.15s, box-shadow 0.15s;
-      }
-
-      input::placeholder,
-      textarea::placeholder {
-        color: var(--color-muted);
-      }
-
-      input:focus,
-      textarea:focus {
-        border-color: var(--color-accent);
-        box-shadow: 0 0 0 2px rgba(212, 132, 122, 0.2);
-      }
-
-      textarea {
-        resize: vertical;
-        min-height: 80px;
-      }
-
-      /* ── Cards ── */
-      .card {
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-md);
-        padding: 16px;
-      }
-
-      .card-title {
-        font-size: 16px;
-        font-weight: 700;
-        margin-bottom: 4px;
-      }
-
-      .card-meta {
-        font-size: 12px;
-        color: var(--color-muted);
-        margin-bottom: 12px;
-      }
-
-      .card-body {
-        font-size: 14px;
-        color: var(--color-text);
-      }
-
-      .card-elevated {
-        background: var(--color-white);
-        box-shadow: var(--shadow-sm);
-      }
-
-      /* ── Tags ── */
-      .tag {
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius-sm);
-        font-size: 12px;
-        padding: 2px 8px;
-        color: var(--color-text);
-      }
-
-      .tag-accent {
-        background: rgba(212, 132, 122, 0.12);
-        border-color: rgba(212, 132, 122, 0.3);
-        color: var(--color-accent-hover);
-      }
-
-      .tag-success {
-        background: rgba(106, 158, 127, 0.12);
-        border-color: rgba(106, 158, 127, 0.3);
-        color: var(--color-success);
-      }
-
-      .tag-pill {
-        border-radius: var(--radius-full);
-      }
-
-      /* ── Status badges ── */
-      .status-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-      }
-
-      /* ── Icons ── */
-      .icon-grid {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        align-items: center;
-      }
-
-      .icon-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 6px;
-      }
-
-      .icon-item span {
-        font-size: 11px;
-        color: var(--color-muted);
-      }
-
-      /* ── Radius demo ── */
-      .radius-demo {
-        display: flex;
-        gap: 16px;
-        flex-wrap: wrap;
-        align-items: flex-end;
-      }
-
-      .radius-box {
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
-        width: 80px;
-        height: 56px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: 2px;
-      }
-
-      .radius-box span {
-        font-size: 11px;
-        color: var(--color-muted);
-      }
-
-      .radius-box strong {
-        font-size: 12px;
-        font-weight: 500;
-      }
-
-      /* ── Shadow demo ── */
-      .shadow-demo {
-        display: flex;
-        gap: 24px;
-        flex-wrap: wrap;
-      }
-
-      .shadow-box {
-        background: var(--color-white);
-        border-radius: var(--radius-md);
-        padding: 16px 20px;
-        font-size: 12px;
-        color: var(--color-muted);
-        text-align: center;
-        min-width: 120px;
-      }
-
-      .shadow-box strong {
-        display: block;
-        font-size: 13px;
-        color: var(--color-text);
-        margin-bottom: 4px;
-        font-weight: 500;
-      }
-
-      /* ── Divider ── */
-      hr {
-        border: none;
-        border-top: 1px solid var(--color-border);
-        margin: 0;
-      }
-    </style>
-  </head>
-  <body>
-    <p class="page-title">Giftify</p>
-    <p class="page-subtitle">Styleguide — last updated 2026-05-16</p>
-
-    <!-- Colors -->
-    <section>
-      <p class="section-label">Colors</p>
-      <div class="swatch-group">
-        <div class="swatch">
-          <div class="swatch-chip" style="background: #fafafa;"></div>
-          <div class="swatch-name">Background</div>
-          <div class="swatch-hex">#FAFAFA</div>
-        </div>
-        <div class="swatch">
-          <div class="swatch-chip" style="background: #f0f0eb;"></div>
-          <div class="swatch-name">Surface</div>
-          <div class="swatch-hex">#F0F0EB</div>
-        </div>
-        <div class="swatch">
-          <div class="swatch-chip" style="background: #ddd8d2;"></div>
-          <div class="swatch-name">Border</div>
-          <div class="swatch-hex">#DDD8D2</div>
-        </div>
-        <div class="swatch">
-          <div class="swatch-chip" style="background: #222220;"></div>
-          <div class="swatch-name">Text</div>
-          <div class="swatch-hex">#222220</div>
-        </div>
-        <div class="swatch">
-          <div class="swatch-chip" style="background: #6b6a66;"></div>
-          <div class="swatch-name">Muted</div>
-          <div class="swatch-hex">#6B6A66</div>
-        </div>
-        <div class="swatch">
-          <div class="swatch-chip" style="background: #d4847a;"></div>
-          <div class="swatch-name">Accent</div>
-          <div class="swatch-hex">#D4847A</div>
-        </div>
-        <div class="swatch">
-          <div class="swatch-chip" style="background: #be6d63;"></div>
-          <div class="swatch-name">Accent Hover</div>
-          <div class="swatch-hex">#BE6D63</div>
-        </div>
-        <div class="swatch">
-          <div class="swatch-chip" style="background: #6a9e7f;"></div>
-          <div class="swatch-name">Success</div>
-          <div class="swatch-hex">#6A9E7F</div>
-        </div>
-        <div class="swatch">
-          <div class="swatch-chip" style="background: #c0544a;"></div>
-          <div class="swatch-name">Error</div>
-          <div class="swatch-hex">#C0544A</div>
-        </div>
+  <section>
+    <h2>Hero and people</h2>
+    <div class="hero">
+      <div style="flex:1">
+        <p style="color:var(--marigold);font-size:13px;margin:0">Next up</p>
+        <h3 style="font-size:30px;margin-top:8px">Arden's Birthday 2026</h3>
+        <p style="opacity:.7;margin:6px 0 20px">November 29, 2026</p>
+        <div class="bar"><i></i></div>
       </div>
-    </section>
-
-    <!-- Typography -->
-    <section>
-      <p class="section-label">Typography — DM Sans</p>
-      <div>
-        <div class="type-row">
-          <div class="type-meta">3xl · 30px · 700</div>
-          <div style="font-size:30px; font-weight:700;">Christmas 2026</div>
-        </div>
-        <div class="type-row">
-          <div class="type-meta">2xl · 24px · 700</div>
-          <div style="font-size:24px; font-weight:700;">Mom's Birthday</div>
-        </div>
-        <div class="type-row">
-          <div class="type-meta">xl · 20px · 700</div>
-          <div style="font-size:20px; font-weight:700;">4000 Weeks for Dad</div>
-        </div>
-        <div class="type-row">
-          <div class="type-meta">lg · 18px · 500</div>
-          <div style="font-size:18px; font-weight:500;">Upcoming Occasions</div>
-        </div>
-        <div class="type-row">
-          <div class="type-meta">base · 16px · 400</div>
-          <div style="font-size:16px; font-weight:400;">Plan gifts for the people you love.</div>
-        </div>
-        <div class="type-row">
-          <div class="type-meta">sm · 14px · 400</div>
-          <div style="font-size:14px; font-weight:400;">Rocker Garlic Press · $32 · Link to buy</div>
-        </div>
-        <div class="type-row">
-          <div class="type-meta">xs · 12px · 400</div>
-          <div style="font-size:12px; font-weight:400; color: #6b6a66;">Added May 16, 2026 · Family</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Buttons -->
-    <section>
-      <p class="section-label">Buttons</p>
-      <div class="row">
-        <button class="btn-primary">
-          <i data-lucide="plus" style="width:16px;height:16px;"></i>
-          Add Recipient
-        </button>
-        <button class="btn-secondary">
-          <i data-lucide="pencil" style="width:16px;height:16px;"></i>
-          Edit
-        </button>
-        <button class="btn-ghost">
-          <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
-          Delete
-        </button>
-        <button class="btn-primary" disabled style="opacity:0.45; cursor:not-allowed;">
-          Save Changes
-        </button>
-      </div>
-    </section>
-
-    <!-- Inputs -->
-    <section>
-      <p class="section-label">Inputs</p>
-      <div class="row">
-        <div class="input-group">
-          <label>Recipient name</label>
-          <input type="text" placeholder="e.g. Mom" />
-        </div>
-        <div class="input-group">
-          <label>Budget</label>
-          <input type="text" placeholder="e.g. $50–75" />
-        </div>
-        <div class="input-group">
-          <label>Gift-giving prompt</label>
-          <textarea placeholder="Loves cooking, minimalist taste, enjoys books about history…"></textarea>
-        </div>
-      </div>
-    </section>
-
-    <!-- Cards -->
-    <section>
-      <p class="section-label">Cards</p>
-      <div class="row">
-        <div class="card" style="width: 240px;">
-          <div class="card-title">🎄 Christmas 2026</div>
-          <div class="card-meta">Dec 25 · 4 gifts planned</div>
-          <div class="card-body">Start shopping by Nov 30</div>
-        </div>
-        <div class="card card-elevated" style="width: 240px;">
-          <div class="card-title">4000 Weeks</div>
-          <div class="card-meta">$18 · Non-fiction book</div>
-          <div class="card-body">Great for thoughtful readers. Given to Dad, 2024.</div>
-        </div>
-        <div class="card" style="width: 240px;">
-          <div class="card-title">🎂 Mom's Birthday 2026</div>
-          <div class="card-meta">Aug 3 · 1 gift planned</div>
-          <div class="card-body" style="color: var(--color-accent); font-weight:500;">⚠ No product selected yet</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Tags & Badges -->
-    <section>
-      <p class="section-label">Tags & Badges</p>
-      <div class="status-row">
-        <span class="tag">Family</span>
-        <span class="tag">Friends</span>
-        <span class="tag tag-accent">Accent</span>
-        <span class="tag tag-success">Purchased</span>
-        <span class="tag tag-pill">Physical</span>
-        <span class="tag tag-pill tag-accent">Experience</span>
-        <span class="tag">
-          <i data-lucide="tag" style="width:10px;height:10px;"></i>
-          Kids
-        </span>
-      </div>
-    </section>
-
-    <!-- Border Radius -->
-    <section>
-      <p class="section-label">Border Radius</p>
-      <div class="radius-demo">
-        <div class="radius-box" style="border-radius: 4px;">
-          <strong>sm</strong>
-          <span>4px</span>
-        </div>
-        <div class="radius-box" style="border-radius: 6px;">
-          <strong>md</strong>
-          <span>6px</span>
-        </div>
-        <div class="radius-box" style="border-radius: 10px;">
-          <strong>lg</strong>
-          <span>10px</span>
-        </div>
-        <div class="radius-box" style="border-radius: 9999px; width: 56px; height: 56px;">
-          <strong>full</strong>
-        </div>
-      </div>
-    </section>
-
-    <!-- Shadows -->
-    <section>
-      <p class="section-label">Shadows</p>
-      <div class="shadow-demo">
-        <div class="shadow-box" style="box-shadow: none; border: 1px solid var(--color-border);">
-          <strong>None</strong>
-          flat on surface
-        </div>
-        <div class="shadow-box" style="box-shadow: 0 1px 3px rgba(0,0,0,0.07);">
-          <strong>sm</strong>
-          subtle lift
-        </div>
-        <div class="shadow-box" style="box-shadow: 0 4px 12px rgba(0,0,0,0.09);">
-          <strong>md</strong>
-          modals, dropdowns
-        </div>
-      </div>
-    </section>
-
-    <!-- Icons -->
-    <section>
-      <p class="section-label">Icons — Lucide (stroke, 20px)</p>
-      <div class="icon-grid">
-        <div class="icon-item">
-          <i data-lucide="gift" style="width:20px;height:20px;"></i>
-          <span>gift</span>
-        </div>
-        <div class="icon-item">
-          <i data-lucide="users" style="width:20px;height:20px;"></i>
-          <span>users</span>
-        </div>
-        <div class="icon-item">
-          <i data-lucide="calendar" style="width:20px;height:20px;"></i>
-          <span>calendar</span>
-        </div>
-        <div class="icon-item">
-          <i data-lucide="shopping-bag" style="width:20px;height:20px;"></i>
-          <span>shopping-bag</span>
-        </div>
-        <div class="icon-item">
-          <i data-lucide="sparkles" style="width:20px;height:20px;"></i>
-          <span>sparkles</span>
-        </div>
-        <div class="icon-item">
-          <i data-lucide="plus" style="width:20px;height:20px;"></i>
-          <span>plus</span>
-        </div>
-        <div class="icon-item">
-          <i data-lucide="pencil" style="width:20px;height:20px;"></i>
-          <span>pencil</span>
-        </div>
-        <div class="icon-item">
-          <i data-lucide="trash-2" style="width:20px;height:20px;"></i>
-          <span>trash-2</span>
-        </div>
-        <div class="icon-item">
-          <i data-lucide="chevron-right" style="width:20px;height:20px;"></i>
-          <span>chevron-right</span>
-        </div>
-        <div class="icon-item">
-          <i data-lucide="link" style="width:20px;height:20px;"></i>
-          <span>link</span>
-        </div>
-        <div class="icon-item">
-          <i data-lucide="tag" style="width:20px;height:20px;"></i>
-          <span>tag</span>
-        </div>
-        <div class="icon-item">
-          <i data-lucide="check" style="width:20px;height:20px;"></i>
-          <span>check</span>
-        </div>
-        <div class="icon-item">
-          <i data-lucide="star" style="width:20px;height:20px;"></i>
-          <span>star</span>
-        </div>
-        <div class="icon-item">
-          <i data-lucide="package" style="width:20px;height:20px;"></i>
-          <span>package</span>
-        </div>
-        <div class="icon-item">
-          <i data-lucide="heart" style="width:20px;height:20px;"></i>
-          <span>heart</span>
-        </div>
-      </div>
-    </section>
-
-    <script>
-      lucide.createIcons();
-    </script>
-  </body>
+      <div style="text-align:right"><div class="d" style="font-size:96px;font-weight:700;line-height:.85">12</div><div style="opacity:.7;font-size:14px;margin-top:8px">days to go</div></div>
+    </div>
+    <div class="row" style="margin-top:20px">
+      <span class="av" style="background:#FCEFD2">👵</span>
+      <span class="av" style="background:#DBEEE5">👨</span>
+      <span class="av" style="background:#E1E6F8">🧑</span>
+      <span class="av" style="background:#F4E8CC">🐶</span>
+      <span class="av" style="background:#DFF0F1">👧</span>
+      <span class="av" style="background:#F6E1E8">👩</span>
+    </div>
+  </section>
+</div>
+</body>
 </html>
