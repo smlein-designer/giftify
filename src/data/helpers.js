@@ -131,12 +131,21 @@ function joinNames(list) {
   return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`
 }
 
-// The name a gift gets from what it is and who it's for:
-// "Garlic press for Luke", "Apron and mixing bowls for Mom", "Gift for Ann and Luke"
-export function giftAutoName(recipients = [], products = []) {
+// What an occasion is called without its year: "Christmas", "Graduation party"
+export function occasionLabel(occasion, holiday) {
+  if (holiday?.name) return holiday.name
+  return (occasion?.name ?? '').replace(/\s+\d{4}$/, '').trim() || null
+}
+
+// The name a gift gets from its context:
+// "Garlic press for Luke", "Apron and mixing bowls for Mom",
+// and before a product is chosen, "Christmas gift for Mom"
+export function giftAutoName(recipients = [], products = [], context = null) {
   const items = products.map((p) => p.name)
   const what =
-    items.length === 0 ? 'Gift' : items.length <= 2 ? joinNames(items) : `${items[0]} + ${items.length - 1} more`
+    items.length === 0
+      ? context ? `${context} gift` : 'Gift'
+      : items.length <= 2 ? joinNames(items) : `${items[0]} + ${items.length - 1} more`
   const name = recipients.length ? `${what} for ${joinNames(recipients.map((r) => r.name))}` : what
   return name.length > 80 ? name.slice(0, 79) + '…' : name
 }

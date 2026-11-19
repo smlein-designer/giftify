@@ -11,6 +11,7 @@ const EXPERIENCE_STATUSES = ['planned', 'confirmed', 'executed']
 export default function GiftForm({
   gift,
   occasionId,
+  occasionContext = null,
   recipients,
   products,
   initialRecipientIds = [],
@@ -28,7 +29,8 @@ export default function GiftForm({
   const [form, setForm] = useState(() => {
     const initialAuto = giftAutoName(
       recipients.filter((r) => initialRecipientIds.includes(r.id)),
-      products.filter((p) => initialProductIds.includes(p.id))
+      products.filter((p) => initialProductIds.includes(p.id)),
+      occasionContext
     )
     return {
       name: gift && gift.name !== initialAuto ? gift.name : '',
@@ -42,7 +44,7 @@ export default function GiftForm({
   const [recipientIds, setRecipientIds] = useState(new Set(initialRecipientIds))
   const [productIds, setProductIds] = useState(new Set(initialProductIds))
 
-  const autoName = giftAutoName(pick(recipients, recipientIds), pick(products, productIds))
+  const autoName = giftAutoName(pick(recipients, recipientIds), pick(products, productIds), occasionContext)
 
   const set = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }))

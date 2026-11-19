@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Pencil, Trash2, Plus, Sparkles, ArrowRight, Gift as GiftIcon } from 'lucide-react'
 import { useData } from '../data/DataContext'
-import { formatDate, formatShort, daysUntil, formatMoney, giftAutoName } from '../data/helpers'
+import { formatDate, formatShort, daysUntil, formatMoney, giftAutoName, occasionLabel } from '../data/helpers'
 import Avatar from '../components/ui/Avatar'
 import IconTile from '../components/ui/IconTile'
 import Progress from '../components/ui/Progress'
@@ -73,6 +73,7 @@ export default function OccasionDetailPage() {
   if (!occasion) return <NotFound title="We couldn't find that occasion" backTo="/occasions" backLabel="Back to occasions" />
 
   const holiday = getHolidayById(occasion.holiday_id)
+  const context = occasionLabel(occasion, holiday)
   const gifts = getGiftsForOccasion(id)
   const days = daysUntil(occasion.date)
 
@@ -139,7 +140,7 @@ export default function OccasionDetailPage() {
       addGift(
         {
           occasion_id: id,
-          name: giftAutoName([r], []),
+          name: giftAutoName([r], [], context),
           type: null,
           physical_status: 'idea',
           experience_status: null,
@@ -221,9 +222,9 @@ export default function OccasionDetailPage() {
         [...currentProductIds, productId]
       )
       // A gift still on its automatic name picks up the new product
-      if (gift && gift.name === giftAutoName(giftRecipientList, currentProducts)) {
+      if (gift && gift.name === giftAutoName(giftRecipientList, currentProducts, context)) {
         const product = existing ?? { name: suggestion.name }
-        updateGift(suggestGiftId, { name: giftAutoName(giftRecipientList, [...currentProducts, product]) })
+        updateGift(suggestGiftId, { name: giftAutoName(giftRecipientList, [...currentProducts, product], context) })
       }
     }
   }
@@ -442,6 +443,7 @@ export default function OccasionDetailPage() {
       {/* Add gift panel */}
       <SlidePanel isOpen={addGiftOpen} onClose={() => setAddGiftOpen(false)} title="New gift">
         <GiftForm
+          occasionContext={context}
           occasionId={id}
           recipients={recipients}
           products={products}
@@ -458,6 +460,7 @@ export default function OccasionDetailPage() {
       >
         {editingGift && (
           <GiftForm
+          occasionContext={context}
             key={editingGiftId}
             gift={editingGift}
             occasionId={id}

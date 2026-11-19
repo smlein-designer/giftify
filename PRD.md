@@ -86,8 +86,8 @@ These are the five things the app knows about. Everything in the app revolves ar
 **Core data:**
 - Name — auto-generated from context; user can override. Two cases:
   - With a product: "[Product] for [Recipient]" (e.g., "4000 Weeks for Dad")
-  - Placeholder (no product yet): "Gift for [Recipient]" (e.g., "Gift for Mom")
-  - Two products: "Apron and mixing bowls for Mom"; three or more: "Apron + 2 more for Mom"; several recipients: "Gift for Ann and Luke"
+  - Placeholder (no product yet): "[Occasion] gift for [Recipient]", using the holiday name, or a one-off occasion's name without the year (e.g., "Christmas gift for Mom", "Graduation party gift for Arden")
+  - Two products: "Apron and mixing bowls for Mom"; three or more: "Apron + 2 more for Mom"; several recipients: "Christmas gift for Ann and Luke"
   - The name follows the gift's people and products until the user types their own; clearing the field returns it to automatic (built Nov 2026)
 - Notes — freeform notes about this specific gift
 - Notes on how much they liked it — used to improve future AI recommendations
