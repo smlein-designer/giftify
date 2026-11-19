@@ -13,6 +13,37 @@ const SYSTEM_HOLIDAYS = HOLIDAY_CATALOG.filter((h) => STARTER_HOLIDAYS.includes(
   is_system: true,
 }))
 
+// First sign-in adds the starter holidays. If the first load runs twice at
+// once (a remount, or two tabs), only one of them may add them: the same tab
+// shares one in-flight setup, and the database's unique index on built-in
+// holidays turns a second tab's attempt into an error we recover from.
+const seedingFor = new Map()
+
+async function seedStarterData(userId) {
+  const holidays = SYSTEM_HOLIDAYS.map((sh) => ({ ...sh, id: crypto.randomUUID(), user_id: userId }))
+  const occasions = holidays.flatMap((hol) =>
+    occasionsForHoliday(hol).map((o) => ({ ...o, id: crypto.randomUUID(), user_id: userId }))
+  )
+  const { error } = await supabase.from('holidays').insert(holidays)
+  if (error) {
+    if (error.code !== '23505') console.error('Giftify: could not seed holidays', error)
+    // Another tab got there first (or the insert failed): use what's stored
+    const [{ data: h }, { data: o }] = await Promise.all([
+      supabase.from('holidays').select('*').order('created_at'),
+      supabase.from('occasions').select('*').order('date'),
+    ])
+    return { holidays: h || [], occasions: o || [], replacesOccasions: true }
+  }
+  if (occasions.length > 0) {
+    const { error: occError } = await supabase.from('occasions').insert(occasions)
+    if (occError) {
+      console.error('Giftify: could not seed occasions', occError)
+      return { holidays, occasions: [] }
+    }
+  }
+  return { holidays, occasions }
+}
+
 export function DataProvider({ children, userId }) {
   const toast = useToast()
   const [loading, setLoading] = useState(true)
@@ -56,31 +87,17 @@ export function DataProvider({ children, userId }) {
       { data: gr }, { data: gp }, { data: hr },
     ] = results
 
-    const loadedHolidays = h || []
+    let loadedHolidays = h || []
     let loadedOccasions = o || []
     if (loadedHolidays.length === 0) {
       // First sign-in: add the standard holidays, plus their next three years
       // of occasions so the home screen isn't empty on day one.
-      const toInsert = SYSTEM_HOLIDAYS.map((sh) => ({
-        ...sh,
-        id: crypto.randomUUID(),
-        user_id: userId,
-      }))
-      const starterOccasions = toInsert.flatMap((hol) =>
-        occasionsForHoliday(hol).map((o) => ({ ...o, id: crypto.randomUUID(), user_id: userId }))
-      )
-      const { error } = await supabase.from('holidays').insert(toInsert)
-      if (error) {
-        console.error('Giftify: could not seed holidays', error)
-      } else if (starterOccasions.length > 0) {
-        const { error: occError } = await supabase.from('occasions').insert(starterOccasions)
-        if (occError) console.error('Giftify: could not seed occasions', occError)
-        else loadedOccasions = [...loadedOccasions, ...starterOccasions]
-      }
-      setHolidays(toInsert)
-    } else {
-      setHolidays(loadedHolidays)
+      if (!seedingFor.has(userId)) seedingFor.set(userId, seedStarterData(userId))
+      const seeded = await seedingFor.get(userId)
+      loadedHolidays = seeded.holidays
+      loadedOccasions = seeded.replacesOccasions ? seeded.occasions : [...loadedOccasions, ...seeded.occasions]
     }
+    setHolidays(loadedHolidays)
 
     setRecipients(r || [])
     setProducts(p || [])
