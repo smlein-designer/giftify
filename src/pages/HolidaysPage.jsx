@@ -49,7 +49,9 @@ function CatalogRow({ entry, onAdd }) {
   const next = upcomingHolidayDates(entry, 1)[0]
   return (
     <li className="flex items-center gap-3.5 py-3">
-      <IconTile icon={entry.icon} name={entry.name} size="sm" />
+      <span className="w-10 shrink-0">
+        <IconTile icon={entry.icon} name={entry.name} size="sm" />
+      </span>
       <div className="min-w-0 flex-1">
         <p className="font-medium text-ink leading-snug">{entry.name}</p>
         <p className="text-[13px] text-ink-faint mt-0.5">
