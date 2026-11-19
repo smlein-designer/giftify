@@ -9,6 +9,7 @@ import {
   holidayRecipients,
   holidayProducts,
 } from './seed'
+import { HOLIDAY_DATES } from './holidayDates'
 
 // Dates are stored as 'YYYY-MM-DD'. Parse them as local dates so they
 // don't shift a day earlier in US time zones.
@@ -51,12 +52,93 @@ export function easterDate(year) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
+const pad = (n) => String(n).padStart(2, '0')
+const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+
+// Nth weekday of a month (nth = -1 for the last one), shifted by `offset` days.
+// Mother's Day: { month: 5, weekday: 0, nth: 2 } (second Sunday in May)
+export function nthWeekdayDate(year, { month, weekday, nth, offset = 0 }) {
+  let d
+  if (nth > 0) {
+    d = new Date(year, month - 1, 1)
+    d.setDate(1 + ((weekday - d.getDay() + 7) % 7) + (nth - 1) * 7)
+  } else {
+    d = new Date(year, month, 0) // last day of the month
+    d.setDate(d.getDate() - ((d.getDay() - weekday + 7) % 7))
+  }
+  d.setDate(d.getDate() + offset)
+  return ymd(d)
+}
+
 // The date a holiday falls on in a given year, or null if we can't work it out
 export function holidayDateInYear(holiday, year) {
   const dl = holiday?.date_logic
-  if (dl?.type === 'fixed') return `${year}-${String(dl.month).padStart(2, '0')}-${String(dl.day).padStart(2, '0')}`
+  if (dl?.type === 'fixed') return `${year}-${pad(dl.month)}-${pad(dl.day)}`
   if (dl?.type === 'calculated' && dl.rule === 'easter') return easterDate(year)
+  if (dl?.type === 'weekday') return nthWeekdayDate(year, dl)
+  if (dl?.type === 'table') return (HOLIDAY_DATES[dl.key] ?? []).find((d) => d.startsWith(`${year}-`)) ?? null
   return null
+}
+
+// The next `count` upcoming dates for a holiday: [{ year, date }]
+export function upcomingHolidayDates(holiday, count = 3) {
+  const dl = holiday?.date_logic
+  if (dl?.type === 'table') {
+    // Lunar holidays can fall twice in one year, so walk the list itself
+    return (HOLIDAY_DATES[dl.key] ?? [])
+      .filter(isUpcoming)
+      .slice(0, count)
+      .map((date) => ({ year: Number(date.slice(0, 4)), date }))
+  }
+  const out = []
+  const start = new Date().getFullYear()
+  for (let y = start; out.length < count && y < start + count + 1; y++) {
+    const date = holidayDateInYear(holiday, y)
+    if (date && isUpcoming(date)) out.push({ year: y, date })
+  }
+  return out
+}
+
+// Occasion rows for a holiday's next three upcoming dates, skipping any that exist
+export function occasionsForHoliday(holiday, existingOccasions = []) {
+  return upcomingHolidayDates(holiday, 3)
+    .filter(({ date }) => !existingOccasions.some((o) => o.holiday_id === holiday.id && o.date === date))
+    .map(({ year, date }) => ({
+      holiday_id: holiday.id,
+      name: `${holiday.name} ${year}`,
+      date,
+      notes: null,
+    }))
+}
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+// "Every year on February 14", "Second Sunday in May"
+export function describeDateLogic(dl) {
+  if (!dl) return 'Date changes each year'
+  if (dl.label) return dl.label
+  if (dl.type === 'fixed') return `Every year on ${MONTH_NAMES[dl.month - 1]} ${dl.day}`
+  if (dl.type === 'calculated' && dl.rule === 'easter') return 'Easter Sunday, which moves each year'
+  return 'Date changes each year'
+}
+
+// "Ann and Luke", "Ann, Luke and Mia"
+function joinNames(list) {
+  if (list.length <= 2) return list.join(' and ')
+  return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`
+}
+
+// The name a gift gets from what it is and who it's for:
+// "Garlic press for Luke", "Apron and mixing bowls for Mom", "Gift for Ann and Luke"
+export function giftAutoName(recipients = [], products = []) {
+  const items = products.map((p) => p.name)
+  const what =
+    items.length === 0 ? 'Gift' : items.length <= 2 ? joinNames(items) : `${items[0]} + ${items.length - 1} more`
+  const name = recipients.length ? `${what} for ${joinNames(recipients.map((r) => r.name))}` : what
+  return name.length > 80 ? name.slice(0, 79) + '…' : name
 }
 
 // $35, $1,249.99
