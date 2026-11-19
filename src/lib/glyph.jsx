@@ -1,6 +1,7 @@
 import {
   TreePine, Cake, Dog, Cat, Rabbit, PawPrint, Flower2, GraduationCap, Wine, Egg, Heart, Gift,
   PartyPopper, Baby, Star, Snowflake, Moon, Gem, Clover, Bird, Fish, Squirrel, Ghost, Sun, CalendarDays,
+  Apple, Briefcase, Leaf, Shirt, House, Flame, Sparkles, Sparkle, MoonStar,
 } from 'lucide-react'
 
 // Emoji are stored as data (recipient.emoji, holiday.icon) but displayed as
@@ -15,15 +16,17 @@ const BY_EMOJI = {
   '🐣': Egg, '🥚': Egg, 
   '❤️': Heart, '💕': Heart, '💝': Heart, '💘': Heart,
   '🎁': Gift, '🎉': PartyPopper, '🎊': PartyPopper, '👶': Baby, '🍼': Baby,
-  '⭐': Star, '🌟': Star, '🌙': Moon, '🕎': Star, '💍': Gem, '💎': Gem,
+  '⭐': Star, '🌟': Star, '🌙': Moon, '🕎': Flame, '💍': Gem, '💎': Gem,
   '🍀': Clover, '☘️': Clover, '🎃': Ghost, '👻': Ghost, '☀️': Sun, '📅': CalendarDays,
+  '🍎': Apple, '💼': Briefcase, '🍂': Leaf, '🦃': Leaf, '👔': Shirt, '🏡': House,
+  '🪔': Sparkles, '🧧': Sparkle, '🕯️': Flame, '🕯': Flame,
 }
 
 // Fallback for dates whose emoji isn't recognized
 const BY_NAME = [
   [/birthday|bday/i, Cake], [/anniversary|wedding/i, Wine], [/christmas|xmas/i, TreePine],
-  [/graduat/i, GraduationCap], [/mother|mom/i, Flower2], [/valentine/i, Heart],
-  [/easter/i, Egg], [/hanukkah|chanukah|diwali/i, Star], [/halloween/i, Ghost],
+  [/graduat/i, GraduationCap], [/mother|mom/i, Flower2], [/father|dad/i, Shirt], [/thanksgiving/i, Leaf], [/teacher/i, Apple], [/boss|professional/i, Briefcase], [/grandparent/i, House], [/valentine/i, Heart],
+  [/easter/i, Egg], [/hanukkah|chanukah|kwanzaa/i, Flame], [/diwali/i, Sparkles], [/lunar new year|chinese new year/i, Sparkle], [/\beid\b/i, MoonStar], [/halloween/i, Ghost],
   [/baby|shower/i, Baby], [/new year/i, PartyPopper],
 ]
 

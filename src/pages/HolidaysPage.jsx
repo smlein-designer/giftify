@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRight, Plus } from 'lucide-react'
 import { useData } from '../data/DataContext'
-import { daysUntil, formatShort, relativeDays } from '../data/helpers'
+import { daysUntil, formatShort, relativeDays, upcomingHolidayDates, occasionsForHoliday } from '../data/helpers'
+import { availableCatalogHolidays } from '../data/holidayCatalog'
 import IconTile from '../components/ui/IconTile'
 import { AvatarStack } from '../components/ui/Avatar'
 import PageHeader, { SectionHeader } from '../components/ui/PageHeader'
@@ -43,6 +44,27 @@ function HolidayRow({ holiday, defaultRecipients, next }) {
   )
 }
 
+// One row in the "add a holiday" list: what it is, when it next falls, and an Add button
+function CatalogRow({ entry, onAdd }) {
+  const next = upcomingHolidayDates(entry, 1)[0]
+  return (
+    <li className="flex items-center gap-3.5 py-3">
+      <IconTile icon={entry.icon} name={entry.name} size="sm" />
+      <div className="min-w-0 flex-1">
+        <p className="font-medium text-ink leading-snug">{entry.name}</p>
+        <p className="text-[13px] text-ink-faint mt-0.5">
+          {entry.date_logic.label ?? (next ? 'Every year' : '')}
+          {next && <> · next {formatShort(next.date)}</>}
+        </p>
+      </div>
+      <Button size="sm" variant="secondary" type="button" onClick={() => onAdd(entry)} aria-label={`Add ${entry.name}`}>
+        <Plus size={15} strokeWidth={2} />
+        Add
+      </Button>
+    </li>
+  )
+}
+
 export default function HolidaysPage() {
   const {
     holidays,
@@ -57,29 +79,35 @@ export default function HolidaysPage() {
   const system = holidays.filter((h) => h.is_system)
   const custom = holidays.filter((h) => !h.is_system)
 
+  const nextDate = (h) => upcomingHolidayDates(h, 1)[0]?.date ?? '9999'
+  const available = availableCatalogHolidays(holidays)
+    .filter((h) => upcomingHolidayDates(h, 1).length > 0)
+    .sort((a, b) => nextDate(a).localeCompare(nextDate(b)))
+  const FEATURED = ["Mother's Day", "Valentine's Day", "Father's Day", 'Thanksgiving']
+  const teaser = [
+    ...FEATURED.filter((n) => available.some((h) => h.name === n)),
+    ...available.map((h) => h.name).filter((n) => !FEATURED.includes(n)),
+  ].slice(0, 2)
+
+  // Add a holiday plus occasions for its next three dates
+  const createHoliday = (data) => {
+    const dates = upcomingHolidayDates(data, 3)
+    const through = dates.length ? dates[dates.length - 1].year : null
+    const newHoliday = addHoliday(data, {
+      success: through ? `${data.name} added, with occasions through ${through}` : `${data.name} added`,
+    })
+    occasionsForHoliday(newHoliday, occasions).forEach((o) => addOccasion(o))
+    return newHoliday
+  }
+
   const handleSave = (formData) => {
-    const currentYearForMsg = new Date().getFullYear()
-    const newHoliday = addHoliday(formData, {
-      success: `${formData.name} added, with occasions through ${currentYearForMsg + 2}`,
-    })
-    // auto-create occasions for this year and next 2 years
-    const { month, day } = newHoliday.date_logic
-    const currentYear = new Date().getFullYear()
-    ;[currentYear, currentYear + 1, currentYear + 2].forEach((year) => {
-      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-      const alreadyExists = occasions.some(
-        (o) => o.holiday_id === newHoliday.id && o.date === dateStr
-      )
-      if (!alreadyExists) {
-        addOccasion({
-          holiday_id: newHoliday.id,
-          name: `${newHoliday.name} ${year}`,
-          date: dateStr,
-          notes: null,
-        })
-      }
-    })
+    createHoliday(formData)
     setPanelOpen(false)
+  }
+
+  // Panel stays open so several holidays can be added in a row
+  const handleAddFromCatalog = (entry) => {
+    createHoliday({ name: entry.name, icon: entry.icon, date_logic: entry.date_logic, is_system: true })
   }
 
   const renderList = (list) => (
@@ -118,11 +146,46 @@ export default function HolidaysPage() {
 
       <section>
         <SectionHeader title="Holidays" count={system.length} />
-        {renderList(system)}
+        {system.length > 0 ? (
+          renderList(system)
+        ) : (
+          <p className="card px-5 py-6 text-ink-soft">No holidays yet.</p>
+        )}
+        {available.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setPanelOpen(true)}
+            className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-medium text-ink-soft hover:text-ink transition-colors"
+          >
+            <Plus size={15} strokeWidth={2} />
+            {available.length > 2 ? `Add ${teaser.join(', ')} and more` : `Add ${teaser.join(' or ')}`}
+          </button>
+        )}
       </section>
 
-      <SlidePanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} title="New date">
-        <HolidayForm onSave={handleSave} onCancel={() => setPanelOpen(false)} />
+      <SlidePanel isOpen={panelOpen} onClose={() => setPanelOpen(false)} title="Add a date">
+        {available.length > 0 && (
+          <section className="mb-8">
+            <h3 className="field-label">Holidays</h3>
+            <p className="text-[13px] text-ink-faint -mt-0.5 mb-1">
+              Common gift-giving days. Dates that move, like Mother's Day, are worked out each year.
+            </p>
+            <ul className="divide-y divide-line">
+              {available.map((entry) => (
+                <CatalogRow key={entry.name} entry={entry} onAdd={handleAddFromCatalog} />
+              ))}
+            </ul>
+          </section>
+        )}
+        <section>
+          {available.length > 0 && (
+            <>
+              <h3 className="field-label">Your own date</h3>
+              <p className="text-[13px] text-ink-faint -mt-0.5 mb-4">Birthdays, anniversaries, anything that repeats.</p>
+            </>
+          )}
+          <HolidayForm onSave={handleSave} onCancel={() => setPanelOpen(false)} />
+        </section>
       </SlidePanel>
     </div>
   )

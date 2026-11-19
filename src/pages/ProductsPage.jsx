@@ -10,10 +10,24 @@ import PageHeader, { EmptyState } from '../components/ui/PageHeader'
 import SlidePanel from '../components/ui/SlidePanel'
 import ProductForm from '../components/products/ProductForm'
 
-export function ProductImage({ product, className = '', large }) {
+// Photos are links to store images, which can move. If one stops loading,
+// show the lettered placeholder instead of a broken image and tell the parent.
+export function ProductImage({ product, className = '', large, onBroken }) {
   const t = tintFor(product.name)
-  if (product.photo_url) {
-    return <img src={product.photo_url} alt={product.name} className={`w-full h-full object-cover ${className}`} />
+  const [brokenUrl, setBrokenUrl] = useState(null)
+  const broken = !!product.photo_url && brokenUrl === product.photo_url
+  if (product.photo_url && !broken) {
+    return (
+      <img
+        src={product.photo_url}
+        alt={product.name}
+        className={`w-full h-full object-cover ${className}`}
+        onError={() => {
+          setBrokenUrl(product.photo_url)
+          onBroken?.()
+        }}
+      />
+    )
   }
   return (
     <div className={`w-full h-full flex items-center justify-center ${t.bg} ${className}`}>

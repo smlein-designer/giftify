@@ -86,7 +86,9 @@ These are the five things the app knows about. Everything in the app revolves ar
 **Core data:**
 - Name — auto-generated from context; user can override. Two cases:
   - With a product: "[Product] for [Recipient]" (e.g., "4000 Weeks for Dad")
-  - Placeholder (no product yet): "[Recipient] — [Occasion Name]" (e.g., "Mom — Christmas 2026", "Arden — Graduation Party")
+  - Placeholder (no product yet): "[Occasion] gift for [Recipient]", using the holiday name, or a one-off occasion's name without the year (e.g., "Christmas gift for Mom", "Graduation party gift for Arden")
+  - Two products: "Apron and mixing bowls for Mom"; three or more: "Apron + 2 more for Mom"; several recipients: "Christmas gift for Ann and Luke"
+  - The name follows the gift's people and products until the user types their own; clearing the field returns it to automatic (built Nov 2026)
 - Notes — freeform notes about this specific gift
 - Notes on how much they liked it — used to improve future AI recommendations
 
@@ -150,7 +152,7 @@ These are the five things the app knows about. Everything in the app revolves ar
 - Color (optional theming)
 
 **Metadata:**
-- Date / Date Logic — fixed dates (Christmas = Dec 25) or calculated dates (Easter varies each year)
+- Date / Date Logic — fixed dates (Christmas = Dec 25), Easter, or weekday rules (Mother's Day = second Sunday in May). Pre-loaded list lives in `src/data/holidayCatalog.js`: Lunar New Year, Eid al-Fitr, Diwali, Hanukkah, Kwanzaa, Valentine's Day, Easter, Administrative Professionals Day, Teacher Appreciation Day, Mother's Day, Father's Day, Grandparents Day, Boss's Day, Thanksgiving, Christmas. New accounts start with Christmas and Easter; the rest are added from the "Add a date" panel (built Nov 2026). Lunar-calendar holidays use looked-up date tables in `src/data/holidayDates.js` (Hanukkah and Lunar New Year through 2035, Eid al-Fitr through 2033, Diwali through 2030); extend them as years pass.
 - Rollup: Average Spend — average total spent across all past occasions for this holiday
 - Total Spend — lifetime total across all occasions for this holiday
 

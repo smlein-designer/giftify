@@ -106,10 +106,10 @@ export const gifts = [
   { id: 'g3', occasion_id: 'o7', name: 'Rocker Garlic Press for Mom', notes: 'Wrapped with a ribbon.', reception_notes: 'She uses it every day now.', type: 'physical', physical_status: 'received', experience_status: null },
   { id: 'g4', occasion_id: 'o4', name: 'Picnic in the Woods for Luke', notes: 'Planned for his birthday weekend.', reception_notes: 'Best birthday yet, per him.', type: 'experience', physical_status: null, experience_status: 'executed' },
   // Upcoming — Christmas 2026 (placeholders)
-  { id: 'g5', occasion_id: 'o2', name: 'Luke — Christmas 2026', notes: null, reception_notes: null, type: null, physical_status: 'idea', experience_status: null },
-  { id: 'g6', occasion_id: 'o2', name: 'Mom — Christmas 2026', notes: null, reception_notes: null, type: null, physical_status: 'idea', experience_status: null },
-  { id: 'g7', occasion_id: 'o2', name: 'Arden — Christmas 2026', notes: null, reception_notes: null, type: null, physical_status: 'idea', experience_status: null },
-  { id: 'g8', occasion_id: 'o2', name: 'Lucky — Christmas 2026', notes: null, reception_notes: null, type: null, physical_status: 'idea', experience_status: null },
+  { id: 'g5', occasion_id: 'o2', name: 'Christmas gift for Luke', notes: null, reception_notes: null, type: null, physical_status: 'idea', experience_status: null },
+  { id: 'g6', occasion_id: 'o2', name: 'Christmas gift for Mom', notes: null, reception_notes: null, type: null, physical_status: 'idea', experience_status: null },
+  { id: 'g7', occasion_id: 'o2', name: 'Christmas gift for Arden', notes: null, reception_notes: null, type: null, physical_status: 'idea', experience_status: null },
+  { id: 'g8', occasion_id: 'o2', name: 'Christmas gift for Lucky', notes: null, reception_notes: null, type: null, physical_status: 'idea', experience_status: null },
   // Upcoming — Luke's Birthday 2026
   { id: 'g9', occasion_id: 'o5', name: 'Large Magnetic Calendar for Luke', notes: 'He mentioned wanting one for the kitchen.', reception_notes: null, type: 'physical', physical_status: 'purchased', experience_status: null },
 ]

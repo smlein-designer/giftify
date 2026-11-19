@@ -3,6 +3,7 @@ import Button from '../ui/Button'
 import IconTile from '../ui/IconTile'
 import Field, { focusFirstError } from '../ui/Field'
 import { HOLIDAY_GLYPHS } from '../../lib/glyph'
+import { describeDateLogic } from '../../data/helpers'
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -14,6 +15,8 @@ export default function HolidayForm({ holiday, onSave, onCancel }) {
   const submitted = useRef(false)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
+  // Holidays like Mother's Day follow a rule, not a fixed day; editing keeps the rule
+  const ruleBased = holiday?.date_logic && holiday.date_logic.type !== 'fixed'
   const [form, setForm] = useState({
     name: holiday?.name ?? '',
     icon: holiday?.icon ?? '🎉',
@@ -39,7 +42,9 @@ export default function HolidayForm({ holiday, onSave, onCancel }) {
     onSave({
       name: form.name.trim(),
       icon: form.icon || '🎉',
-      date_logic: { type: 'fixed', month: Number(form.month), day: Number(form.day) },
+      date_logic: ruleBased
+        ? holiday.date_logic
+        : { type: 'fixed', month: Number(form.month), day: Number(form.day) },
     })
   }
 
@@ -83,6 +88,13 @@ export default function HolidayForm({ holiday, onSave, onCancel }) {
         </div>
       </fieldset>
 
+      {ruleBased ? (
+        <div>
+          <p className="field-label">Date</p>
+          <p className="text-ink">{describeDateLogic(holiday.date_logic)}</p>
+          <p className="text-[13px] text-ink-faint mt-1.5">Worked out for you each year.</p>
+        </div>
+      ) : (
       <fieldset>
         <legend className="field-label">Date</legend>
         <div className="flex gap-2">
@@ -114,6 +126,7 @@ export default function HolidayForm({ holiday, onSave, onCancel }) {
           Repeats every year. {holiday ? '' : "We'll set up occasions for the next three years."}
         </p>
       </fieldset>
+      )}
 
       <div className="flex gap-2 pt-4 mt-2 border-t border-line">
         <Button type="submit" className="flex-1" disabled={saving}>

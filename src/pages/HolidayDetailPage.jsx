@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { Pencil, Trash2, ChevronRight, Check } from 'lucide-react'
 import { useData } from '../data/DataContext'
-import { isUpcoming, dateParts, daysUntil, relativeDays } from '../data/helpers'
+import { isUpcoming, dateParts, daysUntil, relativeDays, describeDateLogic } from '../data/helpers'
 import Avatar from '../components/ui/Avatar'
 import IconTile from '../components/ui/IconTile'
 import Progress from '../components/ui/Progress'
@@ -65,11 +65,7 @@ export default function HolidayDetailPage() {
     navigate('/holidays')
   }
 
-  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  const rule =
-    holiday.date_logic?.type === 'fixed'
-      ? `Every year on ${MONTHS[holiday.date_logic.month - 1]} ${holiday.date_logic.day}`
-      : 'Date changes each year'
+  const rule = describeDateLogic(holiday.date_logic)
 
   const OccasionLine = ({ o, past }) => {
     const { total, purchased } = getGiftProgress(o.id)

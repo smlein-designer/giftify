@@ -185,9 +185,10 @@ export default function ProductForm({ product, onSave, onCancel }) {
           ) : form.photo_url && imgBroken ? (
             <div className="flex flex-col items-center gap-2 text-ink-soft px-6 text-center">
               <ImageOff size={20} strokeWidth={1.75} />
-              <span className="text-[14px]">That image link didn't load.</span>
+              <span className="text-[14px] text-ink">This photo isn't loading.</span>
+              <span className="text-[13px]">The store may have moved it. Remove it, then upload a new one or paste a new link.</span>
               <button type="button" onClick={() => set('photo_url', '')} className="text-[13px] font-medium text-ink underline underline-offset-4">
-                Remove it
+                Remove broken photo
               </button>
             </div>
           ) : (

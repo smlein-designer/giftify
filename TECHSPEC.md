@@ -37,7 +37,7 @@ All tables include `user_id` tied to the logged-in user. Row Level Security (RLS
 | name | text | e.g. "Christmas" |
 | icon | text | Emoji or icon name |
 | color | text | Hex color (optional) |
-| date_logic | jsonb | `{type: "fixed", month: 12, day: 25}` or `{type: "calculated", rule: "easter"}` |
+| date_logic | jsonb | `{type: "fixed", month: 12, day: 25}`, `{type: "calculated", rule: "easter"}`, `{type: "weekday", month, weekday (0 = Sun), nth (-1 = last), offset (days), label}`, or `{type: "table", key, label}` for lunar holidays (dates in `src/data/holidayDates.js`); see `holidayDateInYear` in `src/data/helpers.js` |
 | is_system | boolean | True = pre-loaded, False = user-created |
 | created_at | timestamptz | |
 
@@ -280,16 +280,9 @@ Three triggers. Each calls the Claude API with a constructed prompt.
 
 ## Pre-loaded Holidays
 
-Seeded into the `holidays` table with `is_system = true`. Users add them to their account via "Add to my account" — this creates a `holiday_recipients` entry (with zero recipients initially).
+The list lives in code, `src/data/holidayCatalog.js` (`HOLIDAY_CATALOG`). New accounts get Christmas and Easter on first sign-in (`STARTER_HOLIDAYS`). The "Add a date" panel on /holidays lists every catalog holiday the user hasn't added; adding one inserts a `holidays` row with `is_system = true` and creates occasions for its next three upcoming dates (`occasionsForHoliday`).
 
-Starter set:
-- Christmas (Dec 25)
-- Hanukkah (calculated)
-- Easter (calculated)
-- Mother's Day (2nd Sunday in May)
-- Father's Day (3rd Sunday in June)
-- Valentine's Day (Feb 14)
-- Thanksgiving (4th Thursday in November)
+Catalog: Lunar New Year, Eid al-Fitr, Diwali, Hanukkah (first candle evening) and Kwanzaa (Dec 26), Valentine's Day (Feb 14), Easter, Administrative Professionals Day (Wednesday of the last full week of April), Teacher Appreciation Day (Tuesday of the first full week of May), Mother's Day (2nd Sunday in May), Father's Day (3rd Sunday in June), Grandparents Day (Sunday after Labor Day), Boss's Day (Oct 16), Thanksgiving (4th Thursday in November), Christmas (Dec 25). Lunar-calendar holidays use `{type: "table", key, label}`; the dates live in `src/data/holidayDates.js` (sources noted there) so the list can be extended without touching stored rows. Diwali's table ends in 2030 and Eid's in 2033; add years before then.
 - Halloween (Oct 31)
 - New Year's Day (Jan 1)
 

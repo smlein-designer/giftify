@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react'
 import Button from '../ui/Button'
 import Avatar from '../ui/Avatar'
-import Field, { focusFirstError } from '../ui/Field'
-import { formatMoney } from '../../data/helpers'
+import Field from '../ui/Field'
+import { formatMoney, giftAutoName } from '../../data/helpers'
 
 const PHYSICAL_STATUSES = ['idea', 'purchased', 'wrapped', 'shipped', 'received']
 const EXPERIENCE_STATUSES = ['planned', 'confirmed', 'executed']
@@ -11,6 +11,7 @@ const EXPERIENCE_STATUSES = ['planned', 'confirmed', 'executed']
 export default function GiftForm({
   gift,
   occasionId,
+  occasionContext = null,
   recipients,
   products,
   initialRecipientIds = [],
@@ -22,16 +23,28 @@ export default function GiftForm({
   const submitted = useRef(false)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
-  const [form, setForm] = useState({
-    name: gift?.name ?? '',
+  const pick = (list, ids) => list.filter((x) => ids.has(x.id))
+  // A gift named automatically keeps following its people and products;
+  // a name the user typed sticks. Clearing the field goes back to automatic.
+  const [form, setForm] = useState(() => {
+    const initialAuto = giftAutoName(
+      recipients.filter((r) => initialRecipientIds.includes(r.id)),
+      products.filter((p) => initialProductIds.includes(p.id)),
+      occasionContext
+    )
+    return {
+      name: gift && gift.name !== initialAuto ? gift.name : '',
     type: gift?.type ?? null,
     physical_status: gift?.physical_status ?? 'idea',
     experience_status: gift?.experience_status ?? 'planned',
     notes: gift?.notes ?? '',
     reception_notes: gift?.reception_notes ?? '',
+    }
   })
   const [recipientIds, setRecipientIds] = useState(new Set(initialRecipientIds))
   const [productIds, setProductIds] = useState(new Set(initialProductIds))
+
+  const autoName = giftAutoName(pick(recipients, recipientIds), pick(products, productIds), occasionContext)
 
   const set = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -64,17 +77,12 @@ export default function GiftForm({
   const handleSubmit = (e) => {
     e.preventDefault()
     if (submitted.current) return
-    if (!form.name.trim()) {
-      setErrors({ name: 'Give this gift a name, like “Scarf for Mom”.' })
-      focusFirstError(formRef.current)
-      return
-    }
     submitted.current = true
     setSaving(true)
     onSave(
       {
         occasion_id: occasionId,
-        name: form.name.trim(),
+        name: form.name.trim() || autoName,
         type: form.type,
         physical_status: form.type === 'physical' ? form.physical_status : null,
         experience_status: form.type === 'experience' ? form.experience_status : null,
@@ -92,18 +100,6 @@ export default function GiftForm({
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
-      <Field label="Name" required error={errors.name}>
-        <input
-          type="text"
-          value={form.name}
-          onChange={(e) => set('name', e.target.value)}
-          placeholder="e.g. Linen apron for Mom"
-          className="field"
-          maxLength={80}
-          autoComplete="off"
-        />
-      </Field>
-
       <fieldset>
         <legend className="field-label">Type</legend>
         <div className="flex gap-2" role="radiogroup" aria-label="Gift type">
@@ -193,6 +189,21 @@ export default function GiftForm({
           </div>
         </fieldset>
       )}
+
+      <Field
+        label="Name"
+        hint={form.name.trim() ? 'Clear it to name the gift automatically again.' : 'Named for you from what it is and who it’s for. Type to change it.'}
+      >
+        <input
+          type="text"
+          value={form.name}
+          onChange={(e) => set('name', e.target.value)}
+          placeholder={autoName}
+          className="field"
+          maxLength={80}
+          autoComplete="off"
+        />
+      </Field>
 
       <Field label="Notes">
         <textarea

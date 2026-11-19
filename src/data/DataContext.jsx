@@ -1,16 +1,17 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { isUpcoming, holidayDateInYear } from './helpers'
+import { isUpcoming, occasionsForHoliday } from './helpers'
+import { HOLIDAY_CATALOG, STARTER_HOLIDAYS } from './holidayCatalog'
 import FullPageLoader from '../components/ui/Loader'
 import { useToast } from '../components/ui/Toast'
 import LoadError from '../components/ui/LoadError'
 
 const DataContext = createContext(null)
 
-const SYSTEM_HOLIDAYS = [
-  { name: 'Christmas', icon: '🎄', date_logic: { type: 'fixed', month: 12, day: 25 }, is_system: true },
-  { name: 'Easter', icon: '🐣', date_logic: { type: 'calculated', rule: 'easter' }, is_system: true },
-]
+const SYSTEM_HOLIDAYS = HOLIDAY_CATALOG.filter((h) => STARTER_HOLIDAYS.includes(h.name)).map((h) => ({
+  ...h,
+  is_system: true,
+}))
 
 export function DataProvider({ children, userId }) {
   const toast = useToast()
@@ -65,19 +66,8 @@ export function DataProvider({ children, userId }) {
         id: crypto.randomUUID(),
         user_id: userId,
       }))
-      const year = new Date().getFullYear()
       const starterOccasions = toInsert.flatMap((hol) =>
-        [year, year + 1, year + 2]
-          .map((y) => ({ y, date: holidayDateInYear(hol, y) }))
-          .filter(({ date }) => date && isUpcoming(date))
-          .map(({ y, date }) => ({
-            id: crypto.randomUUID(),
-            user_id: userId,
-            holiday_id: hol.id,
-            name: `${hol.name} ${y}`,
-            date,
-            notes: null,
-          }))
+        occasionsForHoliday(hol).map((o) => ({ ...o, id: crypto.randomUUID(), user_id: userId }))
       )
       const { error } = await supabase.from('holidays').insert(toInsert)
       if (error) {
@@ -353,7 +343,7 @@ export function DataProvider({ children, userId }) {
 
   const addHoliday = (data, opts = {}) => {
     const restore = snapshot()
-    const newHoliday = { ...data, id: crypto.randomUUID(), user_id: userId, is_system: false }
+    const newHoliday = { is_system: false, ...data, id: crypto.randomUUID(), user_id: userId }
     setHolidays((prev) => [...prev, newHoliday])
     persist('add this date', () => must(supabase.from('holidays').insert(newHoliday)), { restore, ...opts })
     return newHoliday

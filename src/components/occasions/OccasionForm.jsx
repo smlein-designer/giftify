@@ -1,15 +1,11 @@
 import { useRef, useState } from 'react'
 import Button from '../ui/Button'
 import Field, { focusFirstError } from '../ui/Field'
+import { upcomingHolidayDates } from '../../data/helpers'
 
 function nextDateForHoliday(holiday) {
-  if (!holiday || holiday.date_logic?.type !== 'fixed') return ''
-  const { month, day } = holiday.date_logic
-  const today = new Date()
-  const y = today.getFullYear()
-  const candidate = new Date(y, month - 1, day)
-  const year = candidate >= today ? y : y + 1
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+  if (!holiday) return ''
+  return upcomingHolidayDates(holiday, 1)[0]?.date ?? ''
 }
 
 export default function OccasionForm({ occasion, holidays, onSave, onCancel }) {
