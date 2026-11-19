@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowUpRight, Pencil, Trash2 } from 'lucide-react'
+import { ArrowUpRight, ImageOff, Pencil, Trash2 } from 'lucide-react'
 import { useData } from '../data/DataContext'
 import Avatar from '../components/ui/Avatar'
 import { formatMoney } from '../data/helpers'
@@ -20,6 +20,7 @@ export default function ProductDetailPage() {
   const confirm = useConfirm()
   const product = getProductById(id)
   const [editOpen, setEditOpen] = useState(false)
+  const [photoBrokenUrl, setPhotoBrokenUrl] = useState(null)
 
   if (!product) return <NotFound title="We couldn't find that gift idea" backTo="/products" backLabel="Back to gift library" />
 
@@ -53,8 +54,24 @@ export default function ProductDetailPage() {
       <BackLink to="/products">Gift library</BackLink>
 
       <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:gap-10 mb-12">
-        <div className="aspect-square rounded-2xl overflow-hidden bg-sand">
-          <ProductImage product={product} large />
+        <div>
+          <div className="aspect-square rounded-2xl overflow-hidden bg-sand">
+            <ProductImage product={product} large onBroken={() => setPhotoBrokenUrl(product.photo_url)} />
+          </div>
+          {product.photo_url && photoBrokenUrl === product.photo_url && (
+            <div role="status" className="mt-3 flex items-start gap-3 rounded-xl bg-sand/70 px-4 py-3.5">
+              <ImageOff size={18} strokeWidth={1.75} className="text-ink-soft shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[14px] text-ink">This photo isn't loading anymore.</p>
+                <p className="text-[13px] text-ink-soft mt-0.5">
+                  The store may have moved or removed it. Add a new photo by uploading one or pasting a new image link.
+                </p>
+              </div>
+              <Button size="sm" variant="secondary" onClick={() => setEditOpen(true)} className="shrink-0">
+                Update photo
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col">
